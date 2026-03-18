@@ -17,6 +17,7 @@ public class CustomUserDetails implements UserDetails {
     private final UUID id;
     private final String email;
     private final String password;
+    @Getter
     private final boolean deleted;
 
     public CustomUserDetails(AppUser user) {

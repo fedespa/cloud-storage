@@ -1,0 +1,28 @@
+name: Cloud Storage API CI/CD
+
+on:
+  push:
+    branches: ["main", "develop", "feature/**"]
+  pull_request:
+    branches: ["main", "develop"]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build con Maven (Compilación)
+        run: mvn -B clean compile
+
+      - name: Ejecutar Test Unitarios
+        run: mvn test

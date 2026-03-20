@@ -1,6 +1,9 @@
 package com.fededev.cloudstorage.workspace.model;
 
 import com.fededev.cloudstorage.common.AuditableEntity;
+import com.fededev.cloudstorage.user.model.AppUser;
+import com.fededev.cloudstorage.workspace.member.model.WorkspaceMember;
+import com.fededev.cloudstorage.workspace.member.model.WorkspaceRole;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -41,9 +44,15 @@ public class Workspace extends AuditableEntity {
     @PositiveOrZero
     private Long usedStorage;
 
-    public void addMember(WorkspaceMember member) {
+    public void addMember(AppUser user, WorkspaceRole role) {
+
+        WorkspaceMember member = WorkspaceMember.builder()
+                .workspace(this)
+                .user(user)
+                .role(role)
+                .build();
+
         this.members.add(member);
-        member.setWorkspace(this);
     }
 
     public void removeMember(WorkspaceMember member) {

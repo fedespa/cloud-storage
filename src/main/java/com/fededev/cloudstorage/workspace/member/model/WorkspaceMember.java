@@ -1,6 +1,7 @@
-package com.fededev.cloudstorage.workspace.model;
+package com.fededev.cloudstorage.workspace.member.model;
 
 import com.fededev.cloudstorage.user.model.AppUser;
+import com.fededev.cloudstorage.workspace.model.Workspace;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;

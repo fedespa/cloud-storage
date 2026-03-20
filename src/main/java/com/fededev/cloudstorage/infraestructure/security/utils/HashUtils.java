@@ -4,6 +4,7 @@ import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.UUID;
 
 @Component
 public class HashUtils {
@@ -22,6 +23,14 @@ public class HashUtils {
         } catch (Exception ex) {
             throw new RuntimeException("Error al hashear el token", ex);
         }
+    }
+
+    public TokenWithHash generateHashToken(){
+
+        String rawToken = UUID.randomUUID().toString();
+        String hashToken = sha256(rawToken);
+
+        return new TokenWithHash(rawToken, hashToken);
     }
 
 }

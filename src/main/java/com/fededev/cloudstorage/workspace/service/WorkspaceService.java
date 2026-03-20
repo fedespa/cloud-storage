@@ -2,8 +2,8 @@ package com.fededev.cloudstorage.workspace.service;
 
 import com.fededev.cloudstorage.user.model.AppUser;
 import com.fededev.cloudstorage.workspace.model.Workspace;
-import com.fededev.cloudstorage.workspace.model.WorkspaceMember;
-import com.fededev.cloudstorage.workspace.model.WorkspaceRole;
+import com.fededev.cloudstorage.workspace.member.model.WorkspaceMember;
+import com.fededev.cloudstorage.workspace.member.model.WorkspaceRole;
 import com.fededev.cloudstorage.workspace.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,12 +26,7 @@ public class WorkspaceService {
                 .usedStorage(0L)
                 .build();
 
-        WorkspaceMember ownerMember = WorkspaceMember.builder()
-                .user(user)
-                .role(WorkspaceRole.OWNER)
-                .build();
-
-        workspace.addMember(ownerMember);
+        workspace.addMember(user, WorkspaceRole.OWNER);
 
         this.workspaceRepository.save(workspace);
     }

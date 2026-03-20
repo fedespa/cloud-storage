@@ -1,4 +1,4 @@
-package com.fededev.cloudstorage.workspace.model;
+package com.fededev.cloudstorage.workspace.member.model;
 
 public enum WorkspaceRole {
     OWNER,

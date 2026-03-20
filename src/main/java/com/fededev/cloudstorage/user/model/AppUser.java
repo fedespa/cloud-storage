@@ -1,6 +1,7 @@
 package com.fededev.cloudstorage.user.model;
 
 import com.fededev.cloudstorage.common.AuditableEntity;
+import com.fededev.cloudstorage.workspace.member.model.WorkspaceMember;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -8,6 +9,8 @@ import lombok.*;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -31,5 +34,9 @@ public class AppUser extends AuditableEntity {
     private String password;
 
     private Instant deletedAt;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "user")
+    private List<WorkspaceMember> memberships = new ArrayList<>();
 
 }

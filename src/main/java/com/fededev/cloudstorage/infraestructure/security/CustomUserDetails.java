@@ -27,6 +27,13 @@ public class CustomUserDetails implements UserDetails {
         this.deleted = user.getDeletedAt() != null;
     }
 
+    public CustomUserDetails(UUID id, String email, boolean deleted) {
+        this.id = id;
+        this.email = email;
+        this.password = null;
+        this.deleted = deleted;
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of();

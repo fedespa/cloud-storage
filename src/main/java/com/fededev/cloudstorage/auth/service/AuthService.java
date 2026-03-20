@@ -28,12 +28,14 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
 
     @Transactional
-    public void handleRegistration(RegisterRequest request) {
+    public AppUser handleRegistration(RegisterRequest request) {
 
         AppUser user = this.userService.register(request);
         // TODO: send email confirmation
 
         this.workspaceService.createDefaultWorkspace(user);
+
+        return user;
     }
 
     public TokensResponse login(LoginRequest request){

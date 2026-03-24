@@ -3,5 +3,6 @@ package com.fededev.cloudstorage.workspace.member.model;
 public enum WorkspaceRole {
     OWNER,
     ADMIN,
-    MEMBER
+    MEMBER,
+    VIEWER
 }

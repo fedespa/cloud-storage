@@ -2,7 +2,6 @@ package com.fededev.cloudstorage.common.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -13,12 +12,14 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import tools.jackson.databind.exc.InvalidFormatException;
 
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
 @RestControllerAdvice
 @Slf4j
@@ -35,7 +36,62 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, ex.getStatus());
     }
 
-    // Maneja errores de validación de Spring (@Valid)
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
+
+        String message = String.format(
+                "El parámetro '%s' debe ser de tipo %s",
+                ex.getName(),
+                ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "desconocido"
+        );
+
+        if (ex.getRequiredType() != null && ex.getRequiredType().equals(UUID.class)) {
+            message = String.format("El parámetro '%s' debe ser un UUID válido (36 caracteres)", ex.getName());
+        }
+
+        ApiError error = new ApiError(
+                "INVALID_PARAMETER_TYPE",
+                message,
+                Instant.now(),
+                null
+        );
+
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> handleIllegalArgumentException(IllegalArgumentException ex) {
+        String message = "Formato inválido";
+
+        if (ex.getMessage() != null && ex.getMessage().contains("Invalid UUID")) {
+            message = "El valor enviado debe ser un UUID válido (36 caracteres)";
+        }
+
+        ApiError error = new ApiError(
+                "INVALID_PARAMETER",
+                message,
+                Instant.now(),
+                null
+        );
+
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiError> handleMissingServletRequestPartException(MissingServletRequestPartException ex) {
+
+        String message = String.format("La parte '%s' es obligatoria en la solicitud", ex.getRequestPartName());
+
+        ApiError error = new ApiError(
+                "MISSING_PART",
+                message,
+                Instant.now(),
+                null
+        );
+
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> details = new HashMap<>();
@@ -51,7 +107,6 @@ public class GlobalExceptionHandler {
         );
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
-
 
     @ExceptionHandler(AuthorizationDeniedException.class)
     public ResponseEntity<ApiError> handleAuthorizationDenied(AuthorizationDeniedException ex) {
@@ -73,11 +128,18 @@ public class GlobalExceptionHandler {
         System.out.println(ex.getCause());
 
         if (ex.getCause() instanceof InvalidFormatException ife) {
-            if (ife.getTargetType().isEnum()) {
-                message = String.format(
-                        "Valor inválido para el campo '%s'",
-                        ife.getPath().get(0).getPropertyName()
-                );
+            String fieldName = ife.getPath().isEmpty() ? "desconocido" :
+                    ife.getPath().get(ife.getPath().size() - 1).getPropertyName();
+
+            Class<?> targetType = ife.getTargetType();
+
+            if (targetType.isEnum()) {
+                message = String.format("Valor inválido para el campo '%s'", fieldName);
+            } else if (targetType.equals(UUID.class)) {
+                message = String.format("El campo '%s' debe ser un UUID válido (36 caracteres)", fieldName);
+            } else {
+                message = String.format("El formato del campo '%s' es incorrecto para el tipo %s",
+                        fieldName, targetType.getSimpleName());
             }
         }
 
@@ -93,10 +155,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ApiError> handleHttpMediaTypeNotSupportedException(HttpMediaTypeNotSupportedException ex) {
-        String supportedTypes = ex.getSupportedMediaTypes().stream()
-                .map(MediaType::toString)
-                .collect(Collectors.joining(", "));
-
         ApiError error = new ApiError(
                 "UNSUPPORTED_MEDIA_TYPE",
                 "El tipo de contenido enviado no está soportado",
@@ -129,8 +187,6 @@ public class GlobalExceptionHandler {
         );
 
         return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
-
-
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
@@ -149,7 +205,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
-    // Maneja cualquier otro error inesperado (500)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGenericException(Exception ex) {
         log.error("Error no controlado: ", ex);

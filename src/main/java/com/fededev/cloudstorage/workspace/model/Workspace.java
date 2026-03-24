@@ -1,6 +1,8 @@
 package com.fededev.cloudstorage.workspace.model;
 
 import com.fededev.cloudstorage.common.AuditableEntity;
+import com.fededev.cloudstorage.common.exception.AppException;
+import com.fededev.cloudstorage.common.exception.ErrorCode;
 import com.fededev.cloudstorage.user.model.AppUser;
 import com.fededev.cloudstorage.workspace.member.model.WorkspaceMember;
 import com.fededev.cloudstorage.workspace.member.model.WorkspaceRole;
@@ -58,6 +60,17 @@ public class Workspace extends AuditableEntity {
     public void removeMember(WorkspaceMember member) {
         this.members.remove(member);
         member.setWorkspace(null);
+    }
+
+    public boolean hasAvailableStorage(long fileSize) {
+        return this.usedStorage + fileSize <= this.totalQuota;
+    }
+
+    public void consumeStorage(long size) {
+        if (!hasAvailableStorage(size)) {
+            throw new AppException(ErrorCode.WORKSPACE_QUOTA_EXCEEDED);
+        }
+        this.usedStorage += size;
     }
 
 }

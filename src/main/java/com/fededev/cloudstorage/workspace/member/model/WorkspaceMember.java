@@ -41,4 +41,11 @@ public class WorkspaceMember {
     @Builder.Default
     private Instant joinedAt = Instant.now();
 
+    public boolean canUpload() {
+        return switch (this.role) {
+            case OWNER, ADMIN, MEMBER -> true;
+            case VIEWER -> false;
+        };
+    }
+
 }

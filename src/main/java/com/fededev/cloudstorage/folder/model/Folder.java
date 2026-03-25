@@ -1,6 +1,7 @@
 package com.fededev.cloudstorage.folder.model;
 
 import com.fededev.cloudstorage.common.AuditableEntity;
+import com.fededev.cloudstorage.file.model.File;
 import com.fededev.cloudstorage.user.model.AppUser;
 import com.fededev.cloudstorage.workspace.model.Workspace;
 import jakarta.persistence.*;
@@ -9,6 +10,7 @@ import lombok.*;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -41,6 +43,12 @@ public class Folder extends AuditableEntity {
     private Folder parent;
 
     private Instant deletedAt;
+
+    @OneToMany(mappedBy = "parent", fetch = FetchType.LAZY)
+    private List<Folder> children;
+
+    @OneToMany(mappedBy = "folder", fetch = FetchType.LAZY)
+    private List<File> files;
 
     public boolean isRoot() {
         return this.parent == null;

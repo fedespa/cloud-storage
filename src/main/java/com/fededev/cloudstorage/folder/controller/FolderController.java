@@ -1,11 +1,12 @@
 package com.fededev.cloudstorage.folder.controller;
 
-import com.fededev.cloudstorage.folder.model.response.FolderDto;
-import com.fededev.cloudstorage.folder.request.CreateFolderRequest;
+import com.fededev.cloudstorage.folder.model.response.FullFolderResponse;
 import com.fededev.cloudstorage.folder.service.FolderService;
 import com.fededev.cloudstorage.infraestructure.security.CustomUserDetails;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -14,22 +15,24 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/workspaces/{workspaceId}")
+@RequestMapping("/api/folders")
 @RequiredArgsConstructor
 public class FolderController {
 
     private final FolderService folderService;
 
-    @PostMapping("/folders")
-    public ResponseEntity<FolderDto> createFolder(
-            @PathVariable UUID workspaceId,
-            @Valid @RequestBody CreateFolderRequest request,
+    @GetMapping("/{folderId}")
+    public ResponseEntity<FullFolderResponse> listFolder(
+            @PathVariable UUID folderId,
+            @Qualifier("folders") @PageableDefault(size = 10) Pageable folderPage,
+            @Qualifier("files") @PageableDefault(size = 10) Pageable filePage,
             @AuthenticationPrincipal CustomUserDetails userDetails
-    ) {
+    ){
+        FullFolderResponse response = this.folderService.listFolder(folderId, folderPage, filePage, userDetails);
 
-        FolderDto response = this.folderService.create(workspaceId, request, userDetails);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
+
+    ///TODO DELETE /api/folders/{folderId}
 
 }

@@ -2,8 +2,11 @@ package com.fededev.cloudstorage.folder.service;
 
 import com.fededev.cloudstorage.common.exception.AppException;
 import com.fededev.cloudstorage.common.exception.ErrorCode;
+import com.fededev.cloudstorage.file.model.File;
+import com.fededev.cloudstorage.file.repository.FileRepository;
 import com.fededev.cloudstorage.folder.model.Folder;
 import com.fededev.cloudstorage.folder.model.response.FolderDto;
+import com.fededev.cloudstorage.folder.model.response.FullFolderResponse;
 import com.fededev.cloudstorage.folder.repository.FolderRepository;
 import com.fededev.cloudstorage.folder.request.CreateFolderRequest;
 import com.fededev.cloudstorage.infraestructure.security.CustomUserDetails;
@@ -14,10 +17,13 @@ import com.fededev.cloudstorage.workspace.member.service.WorkspaceMemberService;
 import com.fededev.cloudstorage.workspace.model.Workspace;
 import com.fededev.cloudstorage.workspace.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -28,6 +34,7 @@ public class FolderService {
     private final UserRepository userRepository;
     private final WorkspaceRepository workspaceRepository;
     private final FolderRepository folderRepository;
+    private final FileRepository fileRepository;
 
     @PreAuthorize("isAuthenticated()")
     @Transactional
@@ -61,6 +68,23 @@ public class FolderService {
         Folder savedFolder = this.folderRepository.save(folder);
 
         return FolderDto.fromEntity(savedFolder);
+    }
+
+    public FullFolderResponse listFolder(
+            UUID folderId,
+            Pageable childrenPageable,
+            Pageable filesPageable,
+            CustomUserDetails userDetails
+    ){
+        UUID userId = userDetails.getId();
+
+        Folder folder = this.folderRepository.findByIdAndUserAccess(folderId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.FOLDER_NOT_FOUND));
+
+        Page<Folder> children = this.folderRepository.findByParentIdAndDeletedAtIsNull(folderId, childrenPageable);
+        Page<File> files = this.fileRepository.findByFolderIdAndDeletedAtIsNull(folderId, filesPageable);
+
+        return FullFolderResponse.fromEntity(folder, children, files);
     }
 
     public Folder getByIdAndWorkspace(UUID folderId, UUID workspaceId) {

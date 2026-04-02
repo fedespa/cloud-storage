@@ -54,4 +54,15 @@ public class Folder extends AuditableEntity {
         return this.parent == null;
     }
 
+    public boolean isOwnerOfFolder(UUID userId) {
+        return this.owner.getId().equals(userId);
+    }
+
+    public void moveTo(Folder folder){
+        this.parent = folder;
+    }
+
+    public void markAsDeleted(){
+        this.deletedAt = Instant.now();
+    }
 }

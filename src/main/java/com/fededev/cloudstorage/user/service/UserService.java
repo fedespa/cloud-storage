@@ -18,7 +18,7 @@ public class UserService {
 
     public AppUser register(RegisterRequest request) {
 
-        boolean exists = this.userRepository.existsByEmail(request.email());
+        boolean exists = this.userRepository.existsByEmail(request.email().toLowerCase().trim());
 
         if (exists) {
             throw new AppException(ErrorCode.EMAIL_ALREADY_EXISTS);
@@ -27,7 +27,7 @@ public class UserService {
         String hashPassword = this.passwordEncoder.encode(request.password());
 
         AppUser user = AppUser.builder()
-                .email(request.email())
+                .email(request.email().toLowerCase().trim())
                 .password(hashPassword)
                 .build();
 

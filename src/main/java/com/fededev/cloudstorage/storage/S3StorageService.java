@@ -7,12 +7,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.*;
 import com.fededev.cloudstorage.common.exception.ErrorCode;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 import java.io.InputStream;
+import java.time.Duration;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +23,7 @@ import java.io.InputStream;
 public class S3StorageService implements StorageService {
 
     private final S3Client s3Client;
+    private final S3Presigner s3Presigner;
 
     @Value("${aws.s3.bucket}")
     private String bucketName;
@@ -57,5 +61,45 @@ public class S3StorageService implements StorageService {
         } catch (Exception e) {
             log.error("No se pudo eliminar el archivo de S3: {}", key, e);
         }
+    }
+
+    @Override
+    public void deleteFiles(List<String> keys) {
+        if (keys == null || keys.isEmpty()) {
+            return;
+        }
+
+        List<ObjectIdentifier> objects = keys.stream()
+                .map(key -> ObjectIdentifier.builder().key(key).build())
+                .toList();
+
+        DeleteObjectsRequest request = DeleteObjectsRequest.builder()
+                .bucket(bucketName)
+                .delete(Delete.builder().objects(objects).build())
+                .build();
+
+        this.s3Client.deleteObjects(request);
+
+        log.info("S3 delete batch ejecutado: {} archivos", keys.size());
+    }
+
+    public String generateUrl(String S3Key, String name, String extension){
+        String ext = extension.startsWith(".") ? extension : "." + extension;
+        String fullFileName = name + ext;
+
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(this.bucketName)
+                .key(S3Key)
+                .responseContentDisposition("attachment; filename=\"" + fullFileName + "\"")
+                .build();
+
+        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                .signatureDuration(Duration.ofMinutes(5))
+                .getObjectRequest(getObjectRequest)
+                .build();
+
+        PresignedGetObjectRequest presignedRequest = this.s3Presigner.presignGetObject(presignRequest);
+
+        return presignedRequest.url().toString();
     }
 }

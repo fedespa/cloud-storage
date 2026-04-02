@@ -1,6 +1,7 @@
 package com.fededev.cloudstorage.common.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -20,6 +21,8 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import static io.lettuce.core.pubsub.PubSubOutput.Type.message;
 
 @RestControllerAdvice
 @Slf4j
@@ -203,6 +206,29 @@ public class GlobalExceptionHandler {
         );
 
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex) {
+        String rootMsg = ex.getMostSpecificCause().getMessage();
+
+        if (rootMsg != null && rootMsg.contains("unique_file_active_in_root")) {
+            ApiError error = new ApiError(
+                    "DUPLICATE_FILE_NAME",
+                    "Ya existe un archivo con ese nombre en la raíz de este workspace.",
+                    Instant.now(),
+                    null
+            );
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+        }
+
+        ApiError genericError = new ApiError(
+                "DATA_INTEGRITY_ERROR",
+                "Error de integridad de datos en la operación.",
+                Instant.now(),
+                null
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(genericError);
     }
 
     @ExceptionHandler(Exception.class)

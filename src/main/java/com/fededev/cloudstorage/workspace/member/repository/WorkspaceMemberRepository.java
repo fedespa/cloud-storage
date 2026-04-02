@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -31,11 +32,11 @@ public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember
     );
 
     @Query("""
-    SELECT wm FROM WorkspaceMember wm
-    JOIN FETCH wm.workspace
-    WHERE wm.workspace.id = :workspaceId
-    AND wm.user.id = :userId
-""")
+        SELECT wm FROM WorkspaceMember wm
+        JOIN FETCH wm.workspace
+        WHERE wm.workspace.id = :workspaceId
+        AND wm.user.id = :userId
+    """)
     Optional<WorkspaceMember> findWithWorkspace(@Param("workspaceId") UUID workspaceId, @Param("userId") UUID userId);
 
     boolean existsByWorkspaceIdAndUserIdAndRoleIn(
@@ -45,6 +46,13 @@ public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember
     );
 
     int countByUserId(UUID userId);
+
+    @Query("""
+        SELECT m FROM WorkspaceMember m
+        JOIN FETCH m.user u
+        WHERE m.workspace.id = :workspaceId
+    """)
+    List<WorkspaceMember> getMembers(@Param("workspaceId") UUID workspaceId);
 
 
 }

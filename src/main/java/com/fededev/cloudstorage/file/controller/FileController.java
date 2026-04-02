@@ -1,40 +1,47 @@
 package com.fededev.cloudstorage.file.controller;
 
-import com.fededev.cloudstorage.file.model.response.FileDto;
-import com.fededev.cloudstorage.file.request.UploadFileRequest;
+import com.fededev.cloudstorage.file.model.response.FileDownload;
+import com.fededev.cloudstorage.file.request.MoveFileRequest;
 import com.fededev.cloudstorage.file.service.FileService;
 import com.fededev.cloudstorage.infraestructure.security.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/workspaces/{workspaceId}")
+@RequestMapping("/api/files")
 @RequiredArgsConstructor
 public class FileController {
 
     private final FileService fileService;
 
-    @PostMapping(value = "/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<FileDto> uploadFile(
-            @PathVariable UUID workspaceId,
-            @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "folderId", required = false) UUID folderId,
+    @DeleteMapping("/{fileId}")
+    public ResponseEntity<Void> deleteFile(
+            @PathVariable UUID fileId,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
+        this.fileService.softDelete(fileId, userDetails);
+        return ResponseEntity.noContent().build();
+    }
 
-        UploadFileRequest request = new UploadFileRequest(workspaceId, folderId, file);
+    @PatchMapping("/{fileId}/move")
+    public ResponseEntity<Void> moveFile(
+            @PathVariable UUID fileId,
+            @RequestBody MoveFileRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ){
+        this.fileService.moveFile(fileId, request, userDetails);
+        return ResponseEntity.noContent().build();
+    }
 
-        FileDto response = this.fileService.uploadFile(request, userDetails);
+    @GetMapping("/{id}/download-url")
+    public ResponseEntity<FileDownload> getDownloadUrl(@PathVariable UUID id, @AuthenticationPrincipal CustomUserDetails user) {
+        String url = this.fileService.generatePresignedUrl(id, user.getId());
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-
+        return ResponseEntity.ok(new FileDownload(url));
     }
 
 }

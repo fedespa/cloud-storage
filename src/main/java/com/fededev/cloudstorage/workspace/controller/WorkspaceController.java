@@ -5,6 +5,7 @@ import com.fededev.cloudstorage.folder.model.response.FullFolderResponse;
 import com.fededev.cloudstorage.folder.request.CreateFolderRequest;
 import com.fededev.cloudstorage.folder.service.FolderService;
 import com.fededev.cloudstorage.infraestructure.security.CustomUserDetails;
+import com.fededev.cloudstorage.workspace.member.model.response.MemberDto;
 import com.fededev.cloudstorage.workspace.service.WorkspaceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -47,6 +49,18 @@ public class WorkspaceController {
 
         FolderDto response = this.folderService.create(workspaceId, request, userDetails);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/members")
+    public ResponseEntity<List<MemberDto>> getMembers(
+            @PathVariable UUID workspaceId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ){
+
+        List<MemberDto> response = this.workspaceService.listMembers(workspaceId, userDetails);
+
+        return ResponseEntity.ok(response);
+
     }
 
 }

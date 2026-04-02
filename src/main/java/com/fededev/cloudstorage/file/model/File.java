@@ -63,4 +63,16 @@ public class File extends AuditableEntity {
         return this.folder == null;
     }
 
+    public boolean isOwnerOfFile(UUID userId) {
+        return this.owner.getId().equals(userId);
+    }
+
+    public void markAsDeleted(){
+        this.deletedAt = Instant.now();
+    }
+
+    public void changeFolder(Folder folder){
+        this.folder = folder;
+    }
+
 }

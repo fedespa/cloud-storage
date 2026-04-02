@@ -37,7 +37,7 @@ public class WorkspaceInvitationValidator {
         Optional<AppUser> user = this.userRepository.findByEmail(request.email());
 
         if (user.isPresent()) {
-            boolean invitedUserIsMember = this.workspaceMemberService.isMember(workspace.getId(), user.get().getId());
+            boolean invitedUserIsMember = this.workspaceMemberService.isInWorkspace(workspace.getId(), user.get().getId());
 
             if (invitedUserIsMember) {
                 throw new AppException(ErrorCode.WORKSPACE_MEMBER_ALREADY_EXISTS);

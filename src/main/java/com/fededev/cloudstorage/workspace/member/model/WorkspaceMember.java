@@ -48,4 +48,9 @@ public class WorkspaceMember {
         };
     }
 
+    public boolean isAdminOrOwner() {
+        return role.equals(WorkspaceRole.ADMIN) || role.equals(WorkspaceRole.OWNER);
+    }
+
+
 }

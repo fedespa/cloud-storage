@@ -9,6 +9,8 @@ import com.fededev.cloudstorage.folder.model.response.FullFolderResponse;
 import com.fededev.cloudstorage.folder.repository.FolderRepository;
 import com.fededev.cloudstorage.infraestructure.security.CustomUserDetails;
 import com.fededev.cloudstorage.user.model.AppUser;
+import com.fededev.cloudstorage.workspace.member.model.WorkspaceMember;
+import com.fededev.cloudstorage.workspace.member.model.response.MemberDto;
 import com.fededev.cloudstorage.workspace.member.service.WorkspaceMemberService;
 import com.fededev.cloudstorage.workspace.model.Workspace;
 import com.fededev.cloudstorage.workspace.member.model.WorkspaceRole;
@@ -19,7 +21,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -49,11 +53,9 @@ public class WorkspaceService {
             UUID workspaceId,
             Pageable folderPageable,
             Pageable filePageable,
-            CustomUserDetails userDetails
+            CustomUserDetails user
     ) {
-        UUID userId = userDetails.getId();
-
-        boolean hasAccess = this.workspaceMemberService.isInWorkspace(workspaceId, userId);
+        boolean hasAccess = this.workspaceMemberService.isInWorkspace(workspaceId, user.getId());
         if (!hasAccess) {
             throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
         }
@@ -62,6 +64,25 @@ public class WorkspaceService {
         Page<File> files = this.fileRepository.findRootFiles(workspaceId, filePageable);
 
         return FullFolderResponse.forRoot(workspaceId, children, files);
+    }
+
+    public List<MemberDto> listMembers(
+            UUID workspaceId,
+            CustomUserDetails userDetails
+    ){
+
+        boolean hasAccess = this.workspaceMemberService.isInWorkspace(workspaceId, userDetails.getId());
+
+        if (!hasAccess) {
+            throw new AppException(ErrorCode.WORKSPACE_NOT_FOUND);
+        }
+
+        List<WorkspaceMember> members = this.workspaceMemberService.getMembers(workspaceId);
+
+        return members.stream()
+                .map(MemberDto::from)
+                .collect(Collectors.toList());
+
     }
 
 

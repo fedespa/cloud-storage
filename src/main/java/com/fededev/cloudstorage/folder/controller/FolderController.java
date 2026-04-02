@@ -1,6 +1,8 @@
 package com.fededev.cloudstorage.folder.controller;
 
+import com.fededev.cloudstorage.folder.model.response.FolderDto;
 import com.fededev.cloudstorage.folder.model.response.FullFolderResponse;
+import com.fededev.cloudstorage.folder.request.MoveFolderRequest;
 import com.fededev.cloudstorage.folder.service.FolderService;
 import com.fededev.cloudstorage.infraestructure.security.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,25 @@ public class FolderController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    ///TODO DELETE /api/folders/{folderId}
+    @PatchMapping("/{folderId}/move")
+    public ResponseEntity<FolderDto> moveFolder(
+            @PathVariable UUID folderId,
+            @RequestBody MoveFolderRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ){
+
+        FolderDto response = this.folderService.move(folderId, request, userDetails);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @DeleteMapping("/{folderId}")
+    public ResponseEntity<Void> deleteFolder(
+            @PathVariable UUID folderId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ){
+
+        this.folderService.delete(folderId, userDetails);
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
 
 }

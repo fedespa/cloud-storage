@@ -57,6 +57,10 @@ public class WorkspaceMemberService {
         ));
     }
 
+    public List<WorkspaceMember> getMembers(UUID workspaceId) {
+        return this.memberRepository.getMembers(workspaceId);
+    }
+
     public void validateIsInWorkspace(UUID workspaceId, UUID userId) {
         boolean isMember = isInWorkspace(workspaceId, userId);
 

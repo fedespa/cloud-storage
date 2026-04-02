@@ -73,4 +73,8 @@ public class Workspace extends AuditableEntity {
         this.usedStorage += size;
     }
 
+    public void releaseStorage(long size) {
+            this.usedStorage = Math.max(0, this.usedStorage - size);
+    }
+
 }

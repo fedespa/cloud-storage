@@ -45,14 +45,9 @@ public class FileCleanupService {
         List<UUID> ids = files.stream().map(File::getId).toList();
 
         this.storageService.deleteFiles(keys);
-
         int deleted = this.fileRepository.deleteByIds(ids);
 
-        Workspace workspace = this.workspaceRepository.findById(workspaceId)
-                .orElseThrow(() -> new AppException(ErrorCode.WORKSPACE_NOT_FOUND));
-
-        workspace.releaseStorage(totalSizeToRelease);
-        this.workspaceRepository.save(workspace);
+        this.workspaceRepository.decreaseUsedStorage(workspaceId, totalSizeToRelease);
 
         log.info("Batch eliminado: {} archivos de la DB", deleted);
 

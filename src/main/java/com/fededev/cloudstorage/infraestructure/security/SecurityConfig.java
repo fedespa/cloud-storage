@@ -4,6 +4,7 @@ import com.fededev.cloudstorage.infraestructure.security.filter.JwtTokenValidato
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -35,6 +36,7 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/shared-links/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(this.jwtTokenValidatorFilter, UsernamePasswordAuthenticationFilter.class);

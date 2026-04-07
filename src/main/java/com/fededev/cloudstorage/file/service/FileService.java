@@ -10,12 +10,14 @@ import com.fededev.cloudstorage.file.request.UploadFileRequest;
 import com.fededev.cloudstorage.folder.model.Folder;
 import com.fededev.cloudstorage.folder.repository.FolderRepository;
 import com.fededev.cloudstorage.infraestructure.security.CustomUserDetails;
+import com.fededev.cloudstorage.infraestructure.security.utils.HashUtils;
 import com.fededev.cloudstorage.storage.StorageService;
 import com.fededev.cloudstorage.user.model.AppUser;
 import com.fededev.cloudstorage.user.repository.UserRepository;
 import com.fededev.cloudstorage.workspace.member.model.WorkspaceMember;
 import com.fededev.cloudstorage.workspace.member.service.WorkspaceMemberService;
 import com.fededev.cloudstorage.workspace.model.Workspace;
+import com.fededev.cloudstorage.workspace.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,6 +40,8 @@ public class FileService {
     private final UserRepository userRepository;
     private final FileRepository fileRepository;
     private final FolderRepository folderRepository;
+    private final WorkspaceRepository workspaceRepository;
+    private final HashUtils hashUtils;
 
     private final Set<String> allowedExtensions = Set.of("jpg", "jpeg", "png", "pdf", "docx");
 
@@ -84,7 +88,12 @@ public class FileService {
         };
 
         Workspace workspace = member.getWorkspace();
-        workspace.consumeStorage(file.getSize());
+
+        int updated = this.workspaceRepository.increaseUsedStorageIfPossible(workspaceId, file.getSize());
+
+        if (updated == 0) {
+            throw new AppException(ErrorCode.WORKSPACE_QUOTA_EXCEEDED);
+        }
 
         String s3Key = generateS3Key(workspace.getId(), sanitizedName);
 
@@ -129,7 +138,6 @@ public class FileService {
         File file = this.fileRepository.findActiveByIdWithWorkspace(fileId)
                 .orElseThrow(() -> new AppException(ErrorCode.FILE_NOT_FOUND));
 
-        // validar permisos (miembro o sharedlink)
         boolean isMember = this.memberService.isInWorkspace(file.getWorkspace().getId(), userId);
 
         if (!isMember) {
@@ -218,8 +226,8 @@ public class FileService {
 
     private String sanitizeFilename(String filename) {
         return filename
-                .replaceAll("[^a-zA-Z0-9\\.\\-]", "_") // Cambia raros por _
-                .replaceAll("_{2,}", "_")              // Colapsa múltiples __ en uno solo
-                .replaceAll("^_|_$", "");              // Quita guiones al inicio o al final
+                .replaceAll("[^a-zA-Z0-9\\.\\-]", "_")
+                .replaceAll("_{2,}", "_")
+                .replaceAll("^_|_$", "");
     }
 }

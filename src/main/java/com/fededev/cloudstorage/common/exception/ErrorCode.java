@@ -49,12 +49,20 @@ public enum ErrorCode {
     INVALID_FILE_EXTENSION("FI_007", "Tipo de extensión no permitida", HttpStatus.BAD_REQUEST),
     FILE_READ_ERROR("FI_008", "Error del servidor al leer el archivo", HttpStatus.INTERNAL_SERVER_ERROR),
     DUPLICATE_FILE_NAME("FI_009", "Ya existe un archivo con el mismo nombre y al mismo nivel", HttpStatus.CONFLICT),
+    FILE_DELETED("FI_010", "El archivo se encuentra borrado", HttpStatus.BAD_REQUEST),
 
     // TRASH JOB
     TRASH_JOB_ALREADY_EXISTS("T_001", "El borrado de la papelera está en progreso", HttpStatus.CONFLICT),
 
+    // SHARED ERRORS
+    INVALID_EXPIRATION_DATE("S_001", "El link debe expirar como mímino en 5 minuto o como máximo 30 días", HttpStatus.BAD_REQUEST),
+    INVALID_SHARE_TOKEN("S_002", "El token no existe o ya no es valido", HttpStatus.BAD_REQUEST),
+    LINK_REVOKED("S_003", "El link fue revocado", HttpStatus.BAD_REQUEST),
+    LINK_EXPIRED("S_004", "El link ya expiró", HttpStatus.BAD_REQUEST),
+
 
     INTERNAL_SERVER_ERROR("G_001", "Ha ocurrido un error interno", HttpStatus.INTERNAL_SERVER_ERROR);
+
     private final String code;
     private final String message;
     private final HttpStatus status;

@@ -1,6 +1,8 @@
 package com.fededev.cloudstorage.file.model;
 
 import com.fededev.cloudstorage.common.AuditableEntity;
+import com.fededev.cloudstorage.common.exception.AppException;
+import com.fededev.cloudstorage.common.exception.ErrorCode;
 import com.fededev.cloudstorage.folder.model.Folder;
 import com.fededev.cloudstorage.user.model.AppUser;
 import com.fededev.cloudstorage.workspace.model.Workspace;
@@ -71,8 +73,11 @@ public class File extends AuditableEntity {
         this.deletedAt = Instant.now();
     }
 
-    public void changeFolder(Folder folder){
-        this.folder = folder;
+    public void changeFolder(Folder newFolder){
+        if ((this.folder != null && this.folder.equals(newFolder)) || (this.folder == null && newFolder == null)) {
+            throw new AppException(ErrorCode.FILE_ALREADY_IN_FOLDER);
+        }
+        this.folder = newFolder;
     }
 
 }

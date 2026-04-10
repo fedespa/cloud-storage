@@ -50,6 +50,7 @@ public enum ErrorCode {
     FILE_READ_ERROR("FI_008", "Error del servidor al leer el archivo", HttpStatus.INTERNAL_SERVER_ERROR),
     DUPLICATE_FILE_NAME("FI_009", "Ya existe un archivo con el mismo nombre y al mismo nivel", HttpStatus.CONFLICT),
     FILE_DELETED("FI_010", "El archivo se encuentra borrado", HttpStatus.BAD_REQUEST),
+    FILE_ALREADY_IN_FOLDER("FI_011", "No puedes mover un archivo dentro de la misma carpeta a la que ya pertenece",  HttpStatus.CONFLICT),
 
     // TRASH JOB
     TRASH_JOB_ALREADY_EXISTS("T_001", "El borrado de la papelera está en progreso", HttpStatus.CONFLICT),

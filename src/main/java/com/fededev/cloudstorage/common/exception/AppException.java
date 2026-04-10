@@ -14,5 +14,4 @@ public class AppException extends RuntimeException {
         this.code = errorCode.getCode();
         this.status = errorCode.getStatus();
     }
-
 }

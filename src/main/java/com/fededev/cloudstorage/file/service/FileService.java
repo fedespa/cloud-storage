@@ -10,7 +10,6 @@ import com.fededev.cloudstorage.file.request.UploadFileRequest;
 import com.fededev.cloudstorage.folder.model.Folder;
 import com.fededev.cloudstorage.folder.repository.FolderRepository;
 import com.fededev.cloudstorage.infraestructure.security.CustomUserDetails;
-import com.fededev.cloudstorage.infraestructure.security.utils.HashUtils;
 import com.fededev.cloudstorage.storage.StorageService;
 import com.fededev.cloudstorage.user.model.AppUser;
 import com.fededev.cloudstorage.user.repository.UserRepository;
@@ -41,7 +40,6 @@ public class FileService {
     private final FileRepository fileRepository;
     private final FolderRepository folderRepository;
     private final WorkspaceRepository workspaceRepository;
-    private final HashUtils hashUtils;
 
     private final Set<String> allowedExtensions = Set.of("jpg", "jpeg", "png", "pdf", "docx");
 

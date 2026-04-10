@@ -62,6 +62,17 @@ public class Folder extends AuditableEntity {
         this.parent = folder;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+
+        if (!(o instanceof Folder)) return false;
+
+        Folder folder = (Folder) o;
+
+        return id != null && id.equals(folder.getId());
+    }
+
     public void markAsDeleted(){
         this.deletedAt = Instant.now();
     }

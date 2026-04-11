@@ -32,7 +32,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Testcontainers
 @ActiveProfiles("test")
-@Transactional
 public class LoginIntegrationTest {
 
     @Container
@@ -50,8 +49,10 @@ public class LoginIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        userRepository.deleteAll();
+
         AppUser user = TestDataFactory.createUser(
-                UUID.randomUUID(),
+                null,
                 "test@example.com",
                 passwordEncoder.encode("password123")
         );

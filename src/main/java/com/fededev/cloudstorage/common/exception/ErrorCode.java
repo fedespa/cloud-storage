@@ -51,6 +51,8 @@ public enum ErrorCode {
     DUPLICATE_FILE_NAME("FI_009", "Ya existe un archivo con el mismo nombre y al mismo nivel", HttpStatus.CONFLICT),
     FILE_DELETED("FI_010", "El archivo se encuentra borrado", HttpStatus.BAD_REQUEST),
     FILE_ALREADY_IN_FOLDER("FI_011", "No puedes mover un archivo dentro de la misma carpeta a la que ya pertenece",  HttpStatus.CONFLICT),
+    INVALID_FILE_CONTENT("FI_012", "El contenido del archivo no coincide con el tipo declarado", HttpStatus.UNPROCESSABLE_ENTITY),
+    MUST_SEND_WORKSPACE_OR_FOLDER("FI_013", "Obligatorio enviar la carpeta o el workspace", HttpStatus.BAD_REQUEST),
 
     // TRASH JOB
     TRASH_JOB_ALREADY_EXISTS("T_001", "El borrado de la papelera está en progreso", HttpStatus.CONFLICT),
@@ -60,7 +62,6 @@ public enum ErrorCode {
     INVALID_SHARE_TOKEN("S_002", "El token no existe o ya no es valido", HttpStatus.BAD_REQUEST),
     LINK_REVOKED("S_003", "El link fue revocado", HttpStatus.BAD_REQUEST),
     LINK_EXPIRED("S_004", "El link ya expiró", HttpStatus.BAD_REQUEST),
-
 
     INTERNAL_SERVER_ERROR("G_001", "Ha ocurrido un error interno", HttpStatus.INTERNAL_SERVER_ERROR);
 

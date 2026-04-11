@@ -26,7 +26,7 @@ public record FileWithUrlDto(
                 file.getName(),
                 file.getExtension(),
                 file.getSize(),
-                file.getContentType(),
+                file.getMimeType(),
                 file.getFolder() != null ? file.getFolder().getId() : null,
                 file.getWorkspace().getId(),
                 file.getOwner().getId(),

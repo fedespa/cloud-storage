@@ -1,12 +1,15 @@
 package com.fededev.cloudstorage.file.repository;
 
 import com.fededev.cloudstorage.file.model.File;
+import com.fededev.cloudstorage.file.model.FileStatus;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -16,6 +19,35 @@ import java.util.UUID;
 
 @Repository
 public interface FileRepository extends JpaRepository<File, UUID> {
+
+    @Query("""
+        SELECT f FROM File f
+        WHERE f.status = 'PENDING'
+        AND f.createdAt < :cutoff
+    """)
+    List<File> findStaleUploads(@Param("cutoff") Instant cutoff, Limit limit);
+
+    @Query("""
+        SELECT f FROM File f
+        WHERE f.id = :fileId
+        AND f.owner.id = :ownerId
+    """)
+    Optional<File> findByIdAndOwnerId(
+            UUID fileId,
+            UUID ownerId
+    );
+
+    @Query("""
+        SELECT f FROM File f
+        WHERE f.id = :fileId
+        AND f.owner.id = :ownerId
+        AND f.status = :status
+    """)
+    Optional<File> findByIdAndOwnerIdAndStatus(
+            UUID fileId,
+            UUID ownerId,
+            FileStatus status
+    );
 
     @Query("""
         SELECT COUNT(f) > 0 FROM File f 
@@ -74,16 +106,6 @@ public interface FileRepository extends JpaRepository<File, UUID> {
         ORDER BY fi.deletedAt DESC
     """)
     Page<File> findTrashRootFiles(@Param("workspaceId") UUID workspaceId, Pageable pageable);
-
-    @Query("""
-        SELECT fi FROM File fi
-        WHERE fi.deletedAt IS NOT NULL 
-        AND fi.deletedAt < :threshold
-    """)
-    List<File> findOldTrashedFiles(
-            @Param("threshold") Instant threshold,
-            Pageable pageable
-    );
 
     @Modifying
     @Query("""

@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -24,5 +25,7 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, UUID> {
     @Modifying
     @Query("UPDATE Workspace w SET w.usedStorage = w.usedStorage - :size WHERE w.id = :id")
     void decreaseUsedStorage(@Param("id") UUID id, @Param("size") Long size);
+
+    Optional<Workspace> findById(UUID id);
 
 }

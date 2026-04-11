@@ -1,5 +1,6 @@
 package com.fededev.cloudstorage.auth;
 
+import com.fededev.cloudstorage.TestDataFactory;
 import com.fededev.cloudstorage.storage.S3StorageService;
 import com.fededev.cloudstorage.user.model.AppUser;
 import com.fededev.cloudstorage.user.repository.UserRepository;
@@ -16,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -30,7 +32,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Testcontainers
 @ActiveProfiles("test")
-@Transactional
 public class LoginIntegrationTest {
 
     @Container
@@ -48,10 +49,13 @@ public class LoginIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        AppUser user = AppUser.builder()
-                .email("test@example.com")
-                .password(passwordEncoder.encode("password123"))
-                .build();
+        userRepository.deleteAll();
+
+        AppUser user = TestDataFactory.createUser(
+                null,
+                "test@example.com",
+                passwordEncoder.encode("password123")
+        );
         userRepository.save(user);
     }
 

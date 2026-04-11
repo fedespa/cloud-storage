@@ -57,13 +57,15 @@ public class File extends AuditableEntity {
     private String s3Key;
 
     @NotBlank
-    private String contentType;
+    private String mimeType;
 
     private Instant deletedAt;
 
-    public boolean isRoot(){
-        return this.folder == null;
-    }
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private FileStatus status = FileStatus.PENDING;
+
+    private Instant confirmedAt;
 
     public boolean isOwnerOfFile(UUID userId) {
         return this.owner.getId().equals(userId);
@@ -71,6 +73,15 @@ public class File extends AuditableEntity {
 
     public void markAsDeleted(){
         this.deletedAt = Instant.now();
+    }
+
+    public void markAsFailed(){
+        this.status = FileStatus.FAILED;
+    }
+
+    public void markAsUploaded(){
+        this.status = FileStatus.UPLOADED;
+        this.confirmedAt = Instant.now();
     }
 
     public void changeFolder(Folder newFolder){

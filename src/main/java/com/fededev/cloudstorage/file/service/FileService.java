@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -55,18 +57,11 @@ public class FileService {
 
         UUID workspaceId = file.getWorkspace().getId();
 
-        WorkspaceMember member = this.memberService.getMemberIfIsInWorkspace(workspaceId, user.getId());
+        validateMovePermission(workspaceId, file, user.getId());
 
-        if (!member.isAdminOrOwner() && !file.isOwnerOfFile(user.getId())) {
-            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
-        }
+        UUID currentFolderId = file.getFolder() != null ? file.getFolder().getId() : null;
 
-        Folder folderDestination = null;
-
-        if (request.folderDestinationId() != null) {
-            folderDestination = this.folderRepository.findByIdAndWorkspaceId(request.folderDestinationId(), workspaceId)
-                    .orElseThrow(() -> new AppException(ErrorCode.FOLDER_NOT_FOUND));
-        }
+        Folder folderDestination = resolveFolderDestination(workspaceId, request.targetFolderId(), currentFolderId);
 
         file.changeFolder(folderDestination);
     }
@@ -77,16 +72,41 @@ public class FileService {
         File file = this.fileRepository.findActiveByIdWithWorkspace(fileId)
                 .orElseThrow(() -> new AppException(ErrorCode.FILE_NOT_FOUND));
 
-        WorkspaceMember member = this.memberService.getMemberIfIsInWorkspace(file.getWorkspace().getId(), user.getId());
-
-        if (!member.isAdminOrOwner() && !file.isOwnerOfFile(user.getId())) {
-            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
-        }
+        validateDeletePermission(file.getWorkspace().getId(), file, user.getId());
 
         if (file.getDeletedAt() != null) {
             return;
         }
 
         file.markAsDeleted();
+    }
+
+    private void validateDeletePermission(UUID workspaceId, File file, UUID userId) {
+        WorkspaceMember member = this.memberService.getMemberIfIsInWorkspace(workspaceId, userId);
+
+        if (!member.isAdminOrOwner() && !file.isOwnerOfFile(userId)) {
+            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
+        }
+    }
+
+    private Folder resolveFolderDestination(UUID workspaceId, UUID targetFolderId, UUID currentFolderId){
+        if (Objects.equals(currentFolderId, targetFolderId)) {
+            throw new AppException(ErrorCode.FILE_ALREADY_IN_FOLDER);
+        }
+
+        if (targetFolderId != null) {
+            return this.folderRepository.findByIdAndWorkspaceId(targetFolderId, workspaceId)
+                    .orElseThrow(() -> new AppException(ErrorCode.FOLDER_NOT_FOUND));
+        }
+
+        return null;
+    }
+
+    private void validateMovePermission(UUID workspaceId, File file, UUID userId){
+        WorkspaceMember member = this.memberService.getMemberIfIsInWorkspace(workspaceId, userId);
+
+        if (!member.isAdminOrOwner() && !file.isOwnerOfFile(userId)) {
+            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
+        }
     }
 }

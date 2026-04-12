@@ -38,24 +38,14 @@ public class FolderService {
 
     @PreAuthorize("isAuthenticated()")
     @Transactional
-    public FolderDto create(UUID workspaceId, CreateFolderRequest request, CustomUserDetails userDetails){
-        UUID userId = userDetails.getId();
+    public FolderDto create(UUID workspaceId, CreateFolderRequest request, CustomUserDetails user){
+        validateUploadPermission(workspaceId, user.getId());
 
-        WorkspaceMember workspaceMember = this.memberService.getMemberIfIsInWorkspace(workspaceId, userId);
+        validateFolderNameUniqueness(request.name(), workspaceId, request.parentId());
 
-        if (!workspaceMember.canUpload()) {
-            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
-        }
+        Folder parent = resolveParentFolder(request.parentId(), workspaceId);
 
-        this.validateFolderNameUniqueness(request.name(), workspaceId, request.parentId());
-
-        Folder parent = null;
-        if (request.parentId() != null) {
-            validateExistingFolder(request.parentId(), workspaceId);
-            parent = this.folderRepository.getReferenceById(request.parentId());
-        }
-
-        AppUser owner = this.userRepository.getReferenceById(userId);
+        AppUser owner = this.userRepository.getReferenceById(user.getId());
         Workspace workspace = this.workspaceRepository.getReferenceById(workspaceId);
 
         Folder folder = Folder.builder()
@@ -74,11 +64,9 @@ public class FolderService {
             UUID folderId,
             Pageable childrenPageable,
             Pageable filesPageable,
-            CustomUserDetails userDetails
+            CustomUserDetails user
     ){
-        UUID userId = userDetails.getId();
-
-        Folder folder = this.folderRepository.findByIdAndUserAccess(folderId, userId)
+        Folder folder = this.folderRepository.findByIdAndUserAccess(folderId, user.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.FOLDER_NOT_FOUND));
 
         Page<Folder> children = this.folderRepository.findByParentIdAndDeletedAtIsNull(folderId, childrenPageable);
@@ -89,43 +77,22 @@ public class FolderService {
 
     @PreAuthorize("isAuthenticated()")
     @Transactional
-    public FolderDto move(
-            UUID folderId,
-            MoveFolderRequest request,
-            CustomUserDetails user
-    ) {
+    public FolderDto move(UUID folderId, MoveFolderRequest request,CustomUserDetails user) {
 
-        if (folderId.equals(request.destinationId())) {
+        if (folderId.equals(request.targetFolderId())) {
             throw new AppException(ErrorCode.CANNOT_MOVE_FOLDER_INTO_ITSELF);
         }
 
         Folder folderToMove = this.folderRepository.findActiveByIdWithWorkspace(folderId)
                 .orElseThrow(() -> new AppException(ErrorCode.FOLDER_NOT_FOUND));
 
-        WorkspaceMember member = this.memberService.getMemberIfIsInWorkspace(
-                folderToMove.getWorkspace().getId(),
-                user.getId()
+        validateMovePermission(folderToMove.getWorkspace().getId(), user.getId());
+
+        Folder folderDestination = resolveTargetFolder(
+                request.targetFolderId(),
+                folderToMove.getId(),
+                folderToMove.getWorkspace().getId()
         );
-
-        if (!member.isAdminOrOwner()) {
-            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
-        }
-
-        Folder folderDestination = null;
-
-        if (request.destinationId() != null) {
-            folderDestination = this.folderRepository.findActiveByIdWithWorkspace(request.destinationId())
-                    .orElseThrow(() -> new AppException(ErrorCode.FOLDER_NOT_FOUND));
-
-            if (!folderDestination.getWorkspace().getId().equals(folderToMove.getWorkspace().getId())) {
-                throw new AppException(ErrorCode.FOLDER_NOT_BELONG_TO_WORKSPACE);
-            }
-
-            long isSubfolder = this.folderRepository.isDescendant(request.destinationId(), folderToMove.getId());
-            if (isSubfolder > 0) {
-                throw new AppException(ErrorCode.CANNOT_MOVE_INTO_SUBFOLDER);
-            }
-        }
 
         folderToMove.moveTo(folderDestination);
 
@@ -134,11 +101,7 @@ public class FolderService {
 
     @PreAuthorize("isAuthenticated()")
     @Transactional
-    public void delete(
-            UUID folderId,
-            CustomUserDetails user
-    ){
-
+    public void delete(UUID folderId, CustomUserDetails user) {
         Folder folder = this.folderRepository.findActiveById(folderId)
                 .orElseThrow(() -> new AppException(ErrorCode.FOLDER_NOT_FOUND));
 
@@ -146,14 +109,66 @@ public class FolderService {
             throw new AppException(ErrorCode.FOLDER_ALREADY_DELETED);
         }
 
-        WorkspaceMember member = this.memberService.getMemberIfIsInWorkspace(folder.getWorkspace().getId(), user.getId());
-
-        if (!member.isAdminOrOwner() && !folder.isOwnerOfFolder(user.getId())) {
-            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
-        }
+        validateDeletePermission(folder, user.getId());
 
         this.fileRepository.softDeleteFilesInFolders(folder.getId());
         this.folderRepository.softDeleteFolderAndSubfolders(folder.getId());
+    }
+
+    private void validateDeletePermission(Folder folder, UUID userId) {
+        WorkspaceMember member = this.memberService.getMemberIfIsInWorkspace(folder.getWorkspace().getId(), userId);
+
+        if (!member.isAdminOrOwner() && !folder.isOwnerOfFolder(userId)) {
+            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
+        }
+    }
+
+    private Folder resolveTargetFolder(UUID targetFolderId, UUID folderToMoveId, UUID workspaceId) {
+        if (targetFolderId != null) {
+            Folder folderDestination = this.folderRepository.findActiveByIdWithWorkspace(targetFolderId)
+                    .orElseThrow(() -> new AppException(ErrorCode.FOLDER_NOT_FOUND));
+
+            if (!folderDestination.getWorkspace().getId().equals(workspaceId)) {
+                throw new AppException(ErrorCode.FOLDER_NOT_BELONG_TO_WORKSPACE);
+            }
+
+            long isSubfolder = this.folderRepository.isDescendant(targetFolderId, folderToMoveId);
+            if (isSubfolder > 0) {
+                throw new AppException(ErrorCode.CANNOT_MOVE_INTO_SUBFOLDER);
+            }
+
+            return folderDestination;
+        }
+
+        return null;
+    }
+
+    private void validateMovePermission(UUID workspaceID, UUID userId){
+        WorkspaceMember member = this.memberService.getMemberIfIsInWorkspace(
+                workspaceID,
+                userId
+        );
+
+        if (!member.isAdminOrOwner()) {
+            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
+        }
+    }
+
+    private Folder resolveParentFolder(UUID parentId, UUID workspaceId){
+        if (parentId != null) {
+            validateExistingFolder(parentId, workspaceId);
+            return this.folderRepository.getReferenceById(parentId);
+        }
+
+        return null;
+    }
+
+    private void validateUploadPermission(UUID workspaceId, UUID userId){
+        WorkspaceMember workspaceMember = this.memberService.getMemberIfIsInWorkspace(workspaceId, userId);
+
+        if (!workspaceMember.canUpload()) {
+            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
+        }
     }
 
     private void validateExistingFolder(UUID parentId, UUID workspaceId){

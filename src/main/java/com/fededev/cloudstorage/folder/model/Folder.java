@@ -50,10 +50,6 @@ public class Folder extends AuditableEntity {
     @OneToMany(mappedBy = "folder", fetch = FetchType.LAZY)
     private List<File> files;
 
-    public boolean isRoot() {
-        return this.parent == null;
-    }
-
     public boolean isOwnerOfFolder(UUID userId) {
         return this.owner.getId().equals(userId);
     }
@@ -73,7 +69,4 @@ public class Folder extends AuditableEntity {
         return id != null && id.equals(folder.getId());
     }
 
-    public void markAsDeleted(){
-        this.deletedAt = Instant.now();
-    }
 }

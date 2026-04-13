@@ -95,7 +95,7 @@ public class FileService {
         }
 
         if (targetFolderId != null) {
-            return this.folderRepository.findByIdAndWorkspaceId(targetFolderId, workspaceId)
+            return this.folderRepository.findByIdAndWorkspaceIdWithOptimisticLock(targetFolderId, workspaceId)
                     .orElseThrow(() -> new AppException(ErrorCode.FOLDER_NOT_FOUND));
         }
 

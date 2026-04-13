@@ -50,6 +50,9 @@ public class Folder extends AuditableEntity {
     @OneToMany(mappedBy = "folder", fetch = FetchType.LAZY)
     private List<File> files;
 
+    @Version
+    private Long version;
+
     public boolean isOwnerOfFolder(UUID userId) {
         return this.owner.getId().equals(userId);
     }

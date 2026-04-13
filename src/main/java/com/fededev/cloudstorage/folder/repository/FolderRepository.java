@@ -1,9 +1,11 @@
 package com.fededev.cloudstorage.folder.repository;
 
 import com.fededev.cloudstorage.folder.model.Folder;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -51,6 +53,18 @@ public interface FolderRepository extends JpaRepository<Folder, UUID> {
     """)
     Optional<Folder> findByIdAndWorkspaceId(
             @Param("folderId") UUID folderId,
+            @Param("workspaceId") UUID workspaceId
+    );
+
+    @Lock(LockModeType.OPTIMISTIC)
+    @Query("""
+        SELECT f FROM Folder f
+        WHERE f.id = :targetFolderId
+            AND f.workspace.id = :workspaceId
+            AND f.deletedAt IS NULL
+    """)
+    Optional<Folder> findByIdAndWorkspaceIdWithOptimisticLock(
+            @Param("targetFolderId") UUID targetFolderId,
             @Param("workspaceId") UUID workspaceId
     );
 

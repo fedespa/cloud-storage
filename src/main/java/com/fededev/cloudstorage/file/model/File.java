@@ -67,6 +67,9 @@ public class File extends AuditableEntity {
 
     private Instant confirmedAt;
 
+    @Version
+    private Long version;
+
     public boolean isOwnerOfFile(UUID userId) {
         return this.owner.getId().equals(userId);
     }

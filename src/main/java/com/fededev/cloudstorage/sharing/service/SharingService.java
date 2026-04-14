@@ -16,7 +16,6 @@ import com.fededev.cloudstorage.storage.StorageService;
 import com.fededev.cloudstorage.workspace.member.model.WorkspaceMember;
 import com.fededev.cloudstorage.workspace.member.service.WorkspaceMemberService;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.BadRequestException;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -37,15 +36,10 @@ public class SharingService {
     private static final Duration MAX = Duration.ofDays(30);
 
     public SharedLinkDto shareFile(UUID fileId, CreateSharedLinkRequest request, CustomUserDetails user){
-        File file = this.fileRepository.findActiveByIdWithWorkspace(fileId)
+        File file = this.fileRepository.findActiveTargetForUpdate(fileId)
                 .orElseThrow(() -> new AppException(ErrorCode.FILE_NOT_FOUND));
 
-        WorkspaceMember member = this.memberService.getMemberIfIsInWorkspace(file.getWorkspace().getId(), user.getId());
-
-        // Solo un admin o el owner del workspace pueden compartir archivos.
-        if (!member.isAdminOrOwner()) {
-            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
-        }
+        validateSharePermission(file.getWorkspace().getId(), user.getId());
 
         Duration duration = validateExpiration(request.durationSeconds());
         Instant expiresAt = Instant.now().plus(duration);
@@ -83,6 +77,15 @@ public class SharingService {
         String url = this.storageService.generateUrl(file.getS3Key(), file.getName(), file.getExtension());
 
         return FileWithUrlDto.fromEntity(file, url);
+    }
+
+    private void validateSharePermission(UUID workspaceId, UUID userId){
+        WorkspaceMember member = this.memberService.getMemberIfIsInWorkspace(workspaceId, userId);
+
+        // Solo un admin o el owner del workspace pueden compartir archivos.
+        if (!member.isAdminOrOwner()) {
+            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
+        }
     }
 
     private void validate(SharedLink link) {

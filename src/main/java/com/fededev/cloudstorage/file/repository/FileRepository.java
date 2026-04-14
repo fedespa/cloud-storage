@@ -2,10 +2,12 @@ package com.fededev.cloudstorage.file.repository;
 
 import com.fededev.cloudstorage.file.model.File;
 import com.fededev.cloudstorage.file.model.FileStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,6 +21,15 @@ import java.util.UUID;
 
 @Repository
 public interface FileRepository extends JpaRepository<File, UUID> {
+
+    @Lock(LockModeType.OPTIMISTIC)
+    @Query("""
+        SELECT f FROM File f
+        JOIN FETCH f.workspace w
+        WHERE f.id = :fileId
+            AND f.deletedAt IS NULL
+    """)
+    Optional<File> findActiveTargetForUpdate(@Param("fileId") UUID fileId);
 
     @Query("""
         SELECT f FROM File f

@@ -45,17 +45,6 @@ public interface FolderRepository extends JpaRepository<Folder, UUID> {
             @Param("parentId") UUID parentId
     );
 
-    @Query("""
-        SELECT f FROM Folder f
-        WHERE f.id = :folderId
-            AND f.workspace.id = :workspaceId
-            AND f.deletedAt IS NULL
-    """)
-    Optional<Folder> findByIdAndWorkspaceId(
-            @Param("folderId") UUID folderId,
-            @Param("workspaceId") UUID workspaceId
-    );
-
     @Lock(LockModeType.OPTIMISTIC)
     @Query("""
         SELECT f FROM Folder f
@@ -63,7 +52,7 @@ public interface FolderRepository extends JpaRepository<Folder, UUID> {
             AND f.workspace.id = :workspaceId
             AND f.deletedAt IS NULL
     """)
-    Optional<Folder> findByIdAndWorkspaceIdWithOptimisticLock(
+    Optional<Folder> findActiveTargetForUpdate(
             @Param("targetFolderId") UUID targetFolderId,
             @Param("workspaceId") UUID workspaceId
     );
@@ -150,13 +139,6 @@ public interface FolderRepository extends JpaRepository<Folder, UUID> {
         ORDER BY f.deletedAt DESC
     """)
     Page<Folder> findTrashRootFolders(@Param("workspaceId") UUID workspaceId, Pageable pageable);
-
-    @Modifying
-    @Query("""
-        DELETE FROM Folder f WHERE f.workspace.id = :workspaceId
-             AND f.deletedAt IS NOT NULL
-    """)
-    int emptyTrashedFolders(@Param("workspaceId") UUID workspaceId);
 
     @Query("SELECT f FROM Folder f WHERE f.parent.id = :parentId AND f.deletedAt IS NOT NULL ORDER BY f.deletedAt DESC")
     Page<Folder> findTrashedSubfolders(@Param("parentId") UUID parentId, Pageable pageable);

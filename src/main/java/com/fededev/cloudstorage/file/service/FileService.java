@@ -30,19 +30,12 @@ public class FileService {
 
     @PreAuthorize("isAuthenticated()")
     public String generatePresignedUrl(UUID fileId, UUID userId) {
-
         File file = this.fileRepository.findActiveByIdWithWorkspace(fileId)
                 .orElseThrow(() -> new AppException(ErrorCode.FILE_NOT_FOUND));
 
-        boolean isMember = this.memberService.isInWorkspace(file.getWorkspace().getId(), userId);
+        validateDownloadPermission(file.getWorkspace().getId(), userId);
 
-        if (!isMember) {
-            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
-        }
-
-        String url = this.storageService.generateUrl(file.getS3Key(), file.getName(), file.getExtension());
-
-        return url;
+        return this.storageService.generateUrl(file.getS3Key(), file.getName(), file.getExtension());
     }
 
     @PreAuthorize("isAuthenticated()")
@@ -72,13 +65,21 @@ public class FileService {
         File file = this.fileRepository.findActiveByIdWithWorkspace(fileId)
                 .orElseThrow(() -> new AppException(ErrorCode.FILE_NOT_FOUND));
 
-        validateDeletePermission(file.getWorkspace().getId(), file, user.getId());
-
         if (file.getDeletedAt() != null) {
             return;
         }
 
+        validateDeletePermission(file.getWorkspace().getId(), file, user.getId());
+
         file.markAsDeleted();
+    }
+
+    private void validateDownloadPermission(UUID workspaceId, UUID userId){
+        boolean isMember = this.memberService.isInWorkspace(workspaceId, userId);
+
+        if (!isMember) {
+            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
+        }
     }
 
     private void validateDeletePermission(UUID workspaceId, File file, UUID userId) {
@@ -95,7 +96,7 @@ public class FileService {
         }
 
         if (targetFolderId != null) {
-            return this.folderRepository.findByIdAndWorkspaceIdWithOptimisticLock(targetFolderId, workspaceId)
+            return this.folderRepository.findActiveTargetForUpdate(targetFolderId, workspaceId)
                     .orElseThrow(() -> new AppException(ErrorCode.FOLDER_NOT_FOUND));
         }
 

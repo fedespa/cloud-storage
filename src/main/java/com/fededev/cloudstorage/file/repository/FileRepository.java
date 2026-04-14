@@ -22,6 +22,13 @@ import java.util.UUID;
 @Repository
 public interface FileRepository extends JpaRepository<File, UUID> {
 
+    @Query("""
+        SELECT f FROM File f
+        WHERE f.status = 'FAILED'
+        AND f.createdAt < :cutoff
+    """)
+    List<File> findFailed(@Param("cutoff") Instant cutoff);
+
     @Lock(LockModeType.OPTIMISTIC)
     @Query("""
         SELECT f FROM File f

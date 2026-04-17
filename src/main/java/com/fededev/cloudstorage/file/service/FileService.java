@@ -3,6 +3,7 @@ package com.fededev.cloudstorage.file.service;
 import com.fededev.cloudstorage.common.exception.AppException;
 import com.fededev.cloudstorage.common.exception.ErrorCode;
 import com.fededev.cloudstorage.file.model.File;
+import com.fededev.cloudstorage.file.model.FileStatus;
 import com.fededev.cloudstorage.file.repository.FileRepository;
 import com.fededev.cloudstorage.file.request.MoveFileRequest;
 import com.fededev.cloudstorage.folder.model.Folder;
@@ -12,6 +13,8 @@ import com.fededev.cloudstorage.storage.StorageService;
 import com.fededev.cloudstorage.workspace.member.model.WorkspaceMember;
 import com.fededev.cloudstorage.workspace.member.service.WorkspaceMemberService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,8 +33,7 @@ public class FileService {
 
     @PreAuthorize("isAuthenticated()")
     public String generatePresignedUrl(UUID fileId, UUID userId) {
-        File file = this.fileRepository.findActiveByIdWithWorkspace(fileId)
-                .orElseThrow(() -> new AppException(ErrorCode.FILE_NOT_FOUND));
+        File file = getActiveFileOrThrow(fileId);
 
         validateDownloadPermission(file.getWorkspace().getId(), userId);
 
@@ -45,8 +47,7 @@ public class FileService {
             MoveFileRequest request,
             CustomUserDetails user
     ){
-        File file = this.fileRepository.findActiveByIdWithWorkspace(fileId)
-                .orElseThrow(() -> new AppException(ErrorCode.FILE_NOT_FOUND));
+        File file = getActiveFileOrThrow(fileId);
 
         UUID workspaceId = file.getWorkspace().getId();
 
@@ -62,8 +63,7 @@ public class FileService {
     @PreAuthorize("isAuthenticated()")
     @Transactional
     public void softDelete(UUID fileId, CustomUserDetails user) {
-        File file = this.fileRepository.findActiveByIdWithWorkspace(fileId)
-                .orElseThrow(() -> new AppException(ErrorCode.FILE_NOT_FOUND));
+        File file = getActiveFileOrThrow(fileId);
 
         if (file.getDeletedAt() != null) {
             return;
@@ -72,6 +72,20 @@ public class FileService {
         validateDeletePermission(file.getWorkspace().getId(), file, user.getId());
 
         file.markAsDeleted();
+    }
+
+    public void softDeleteAllUnderFolder(UUID folderId){
+        this.fileRepository.softDeleteFilesInFolders(folderId);
+    }
+
+    public Page<File> findActiveFilesInFolder(UUID folderId, Pageable pageable){
+        return this.fileRepository.findActiveFilesInFolder(folderId, FileStatus.UPLOADED, pageable);
+    }
+
+    private File getActiveFileOrThrow(UUID fileId) {
+        return this.fileRepository
+                .findActiveByIdWithWorkspace(fileId, FileStatus.UPLOADED)
+                .orElseThrow(() -> new AppException(ErrorCode.FILE_NOT_FOUND));
     }
 
     private void validateDownloadPermission(UUID workspaceId, UUID userId){
@@ -96,7 +110,7 @@ public class FileService {
         }
 
         if (targetFolderId != null) {
-            return this.folderRepository.findActiveTargetForUpdate(targetFolderId, workspaceId)
+            return this.folderRepository.findActiveForUpdate(targetFolderId, workspaceId)
                     .orElseThrow(() -> new AppException(ErrorCode.FOLDER_NOT_FOUND));
         }
 

@@ -40,10 +40,7 @@ public class TrashService {
             CustomUserDetails user,
             Pageable pageable
     ){
-        boolean hasAccess = this.memberService.isInWorkspace(workspaceId, user.getId());
-        if (!hasAccess) {
-            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
-        }
+        validateListContentPermission(workspaceId, user.getId());
 
         if (folderId == null) {
             Page<Folder> rootFolders = this.folderRepository.findTrashRootFolders(workspaceId, pageable);
@@ -69,13 +66,24 @@ public class TrashService {
 
     @PreAuthorize("isAuthenticated()")
     public void emptyTrash(UUID workspaceId, CustomUserDetails user){
-        WorkspaceMember member = this.memberService.getMemberIfIsInWorkspace(workspaceId, user.getId());
+        validateEmptyTrashPermission(workspaceId, user.getId());
+
+        this.trashJobService.create(workspaceId, user.getId());
+    }
+
+    private void validateListContentPermission(UUID workspaceId, UUID userId){
+        boolean hasAccess = this.memberService.isInWorkspace(workspaceId, userId);
+        if (!hasAccess) {
+            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
+        }
+    }
+
+    private void validateEmptyTrashPermission(UUID workspaceId, UUID userId){
+        WorkspaceMember member = this.memberService.getMemberIfIsInWorkspace(workspaceId, userId);
 
         if (!member.isAdminOrOwner()) {
             throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
         }
-
-        this.trashJobService.create(workspaceId, user.getId());
     }
 
 }

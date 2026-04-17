@@ -1,13 +1,10 @@
 package com.fededev.cloudstorage.trash.service;
 
-import com.fededev.cloudstorage.common.exception.AppException;
-import com.fededev.cloudstorage.common.exception.ErrorCode;
 import com.fededev.cloudstorage.file.model.File;
 import com.fededev.cloudstorage.file.repository.FileRepository;
 import com.fededev.cloudstorage.folder.model.Folder;
 import com.fededev.cloudstorage.folder.repository.FolderRepository;
 import com.fededev.cloudstorage.storage.StorageService;
-import com.fededev.cloudstorage.workspace.model.Workspace;
 import com.fededev.cloudstorage.workspace.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

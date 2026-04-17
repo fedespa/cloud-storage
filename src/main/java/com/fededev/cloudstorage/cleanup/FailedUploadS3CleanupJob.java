@@ -1,6 +1,7 @@
 package com.fededev.cloudstorage.cleanup;
 
 import com.fededev.cloudstorage.file.model.File;
+import com.fededev.cloudstorage.file.model.FileStatus;
 import com.fededev.cloudstorage.file.repository.FileRepository;
 import com.fededev.cloudstorage.storage.StorageService;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,7 @@ public class FailedUploadS3CleanupJob {
     public void deleteFailedObjects() {
         Instant cutoff = Instant.now().minus(1, ChronoUnit.HOURS);
 
-        List<File> failed = this.fileRepository.findFailed(cutoff);
+        List<File> failed = this.fileRepository.findFailed(cutoff, FileStatus.FAILED);
 
         for (File file : failed) {
             try {

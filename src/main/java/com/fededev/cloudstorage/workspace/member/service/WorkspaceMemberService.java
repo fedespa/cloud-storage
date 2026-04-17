@@ -26,28 +26,12 @@ public class WorkspaceMemberService {
                 .orElseThrow(() -> new AppException(ErrorCode.WORKSPACE_MEMBER_NOT_FOUND));
     }
 
-    public boolean hasRole(UUID workspaceId, UUID userId, WorkspaceRole role) {
-        return this.memberRepository.existsByWorkspaceIdAndUserIdAndRole(workspaceId, userId, role);
-    }
-
     public boolean hasAnyRole(UUID workspaceId, UUID userId, List<WorkspaceRole> roles) {
         return this.memberRepository.existsByWorkspaceIdAndUserIdAndRoleIn(workspaceId, userId, roles);
     }
 
-    public boolean isOwner(UUID workspaceId, UUID userId) {
-        return hasRole(workspaceId, userId, WorkspaceRole.OWNER);
-    }
-
-    public boolean isAdmin(UUID workspaceId, UUID userId) {
-        return hasRole(workspaceId, userId, WorkspaceRole.ADMIN);
-    }
-
     public boolean isMember(UUID workspaceId, UUID userId) {
         return this.memberRepository.existsByWorkspaceIdAndUserIdAndRole(workspaceId, userId,  WorkspaceRole.MEMBER);
-    }
-
-    public boolean isViewer(UUID workspaceId, UUID userId) {
-        return hasRole(workspaceId, userId, WorkspaceRole.VIEWER);
     }
 
     public boolean isAdminOrOwner(UUID workspaceId, UUID userId) {
@@ -59,14 +43,6 @@ public class WorkspaceMemberService {
 
     public List<WorkspaceMember> getMembers(UUID workspaceId) {
         return this.memberRepository.getMembers(workspaceId);
-    }
-
-    public void validateIsInWorkspace(UUID workspaceId, UUID userId) {
-        boolean isMember = isInWorkspace(workspaceId, userId);
-
-        if (!isMember) {
-            throw new AppException(ErrorCode.WORKSPACE_MEMBER_NOT_FOUND);
-        }
     }
 
     public WorkspaceMember getMemberIfIsInWorkspace(UUID workspaceId, UUID userId) {

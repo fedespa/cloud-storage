@@ -3,6 +3,7 @@ package com.fededev.cloudstorage.workspace.service;
 import com.fededev.cloudstorage.common.exception.AppException;
 import com.fededev.cloudstorage.common.exception.ErrorCode;
 import com.fededev.cloudstorage.file.model.File;
+import com.fededev.cloudstorage.file.model.FileStatus;
 import com.fededev.cloudstorage.file.repository.FileRepository;
 import com.fededev.cloudstorage.folder.model.Folder;
 import com.fededev.cloudstorage.folder.model.response.FullFolderResponse;
@@ -55,27 +56,20 @@ public class WorkspaceService {
             Pageable filePageable,
             CustomUserDetails user
     ) {
-        boolean hasAccess = this.workspaceMemberService.isInWorkspace(workspaceId, user.getId());
-        if (!hasAccess) {
-            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
-        }
+        validateListContentPermission(workspaceId, user.getId());
 
         Page<Folder> children = this.folderRepository.findRootFolders(workspaceId, folderPageable);
-        Page<File> files = this.fileRepository.findRootFiles(workspaceId, filePageable);
+        Page<File> files = this.fileRepository.findRootFiles(workspaceId, FileStatus.UPLOADED, filePageable);
 
         return FullFolderResponse.forRoot(workspaceId, children, files);
     }
 
     public List<MemberDto> listMembers(
             UUID workspaceId,
-            CustomUserDetails userDetails
+            CustomUserDetails user
     ){
 
-        boolean hasAccess = this.workspaceMemberService.isInWorkspace(workspaceId, userDetails.getId());
-
-        if (!hasAccess) {
-            throw new AppException(ErrorCode.WORKSPACE_NOT_FOUND);
-        }
+        validateListMemberPermission(workspaceId, user.getId());
 
         List<WorkspaceMember> members = this.workspaceMemberService.getMembers(workspaceId);
 
@@ -85,6 +79,31 @@ public class WorkspaceService {
 
     }
 
+    public void decreaseUsedStorage(UUID workspaceId, Long declaredSize) {
+        this.workspaceRepository.decreaseUsedStorage(
+                workspaceId,
+                declaredSize
+        );
+    }
 
+    public Workspace getById(UUID workspaceId) {
+        return this.workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new AppException(ErrorCode.WORKSPACE_NOT_FOUND));
+    }
+
+    private void validateListContentPermission(UUID workspaceId, UUID userId) {
+        boolean hasAccess = this.workspaceMemberService.isInWorkspace(workspaceId, userId);
+        if (!hasAccess) {
+            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
+        }
+    }
+
+    private void validateListMemberPermission(UUID workspaceId, UUID userId) {
+        boolean hasAccess = this.workspaceMemberService.isInWorkspace(workspaceId, userId);
+
+        if (!hasAccess) {
+            throw new AppException(ErrorCode.WORKSPACE_ACCESS_DENIED);
+        }
+    }
 
 }

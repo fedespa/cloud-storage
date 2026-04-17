@@ -1,6 +1,7 @@
 package com.fededev.cloudstorage.cleanup;
 
 import com.fededev.cloudstorage.file.model.File;
+import com.fededev.cloudstorage.file.model.FileStatus;
 import com.fededev.cloudstorage.file.repository.FileRepository;
 import com.fededev.cloudstorage.workspace.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +30,7 @@ public class StaleUploadCleanupJob {
     public void cleanStaleUploads(){
         Instant cutoff = Instant.now().minus(30, ChronoUnit.MINUTES);
 
-        List<File> files = this.fileRepository.findStaleUploads(cutoff, Limit.of(300));
+        List<File> files = this.fileRepository.findStaleUploads(cutoff, FileStatus.PENDING, Limit.of(300));
 
         if (files.isEmpty()) return;
 

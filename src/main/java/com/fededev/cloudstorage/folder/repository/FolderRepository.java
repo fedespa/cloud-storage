@@ -52,7 +52,7 @@ public interface FolderRepository extends JpaRepository<Folder, UUID> {
             AND f.workspace.id = :workspaceId
             AND f.deletedAt IS NULL
     """)
-    Optional<Folder> findActiveTargetForUpdate(
+    Optional<Folder> findActiveForUpdate(
             @Param("targetFolderId") UUID targetFolderId,
             @Param("workspaceId") UUID workspaceId
     );

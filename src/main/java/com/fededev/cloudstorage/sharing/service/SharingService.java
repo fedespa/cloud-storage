@@ -3,6 +3,7 @@ package com.fededev.cloudstorage.sharing.service;
 import com.fededev.cloudstorage.common.exception.AppException;
 import com.fededev.cloudstorage.common.exception.ErrorCode;
 import com.fededev.cloudstorage.file.model.File;
+import com.fededev.cloudstorage.file.model.FileStatus;
 import com.fededev.cloudstorage.file.model.response.FileWithUrlDto;
 import com.fededev.cloudstorage.file.repository.FileRepository;
 import com.fededev.cloudstorage.infraestructure.security.CustomUserDetails;
@@ -36,7 +37,7 @@ public class SharingService {
     private static final Duration MAX = Duration.ofDays(30);
 
     public SharedLinkDto shareFile(UUID fileId, CreateSharedLinkRequest request, CustomUserDetails user){
-        File file = this.fileRepository.findActiveTargetForUpdate(fileId)
+        File file = this.fileRepository.findActiveTargetForUpdate(fileId, FileStatus.UPLOADED)
                 .orElseThrow(() -> new AppException(ErrorCode.FILE_NOT_FOUND));
 
         validateSharePermission(file.getWorkspace().getId(), user.getId());

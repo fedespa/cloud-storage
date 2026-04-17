@@ -1,0 +1,5 @@
+ALTER TABLE IF EXISTS files
+    ALTER COLUMN s3_key DROP NOT NULL;
+
+ALTER TABLE IF EXISTS files
+    ADD CONSTRAINT uq_files_s3_key UNIQUE (s3_key);

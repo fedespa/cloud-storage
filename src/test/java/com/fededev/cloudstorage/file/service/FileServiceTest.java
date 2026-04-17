@@ -4,6 +4,7 @@ import com.fededev.cloudstorage.TestDataFactory;
 import com.fededev.cloudstorage.common.exception.AppException;
 import com.fededev.cloudstorage.common.exception.ErrorCode;
 import com.fededev.cloudstorage.file.model.File;
+import com.fededev.cloudstorage.file.model.FileStatus;
 import com.fededev.cloudstorage.file.repository.FileRepository;
 import com.fededev.cloudstorage.file.request.MoveFileRequest;
 import com.fededev.cloudstorage.folder.model.Folder;
@@ -21,7 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 import java.util.UUID;
 
-import static io.lettuce.core.KillArgs.Builder.id;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -58,7 +58,7 @@ public class FileServiceTest {
         WorkspaceMember member = mock(WorkspaceMember.class);
         when(member.isAdminOrOwner()).thenReturn(true);
 
-        when(fileRepository.findActiveByIdWithWorkspace(fileId))
+        when(fileRepository.findActiveByIdWithWorkspace(fileId, FileStatus.UPLOADED))
                 .thenReturn(Optional.of(file));
 
         when(memberService.getMemberIfIsInWorkspace(workspaceId, userId))

@@ -19,7 +19,6 @@ public class InvitationEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleInvitationCreated(InvitationCreatedEvent event) {
         log.info("Enviando correo de invitación para: {}", event.email());
-        log.info("TOKEN: {}", event.token());
         try {
             // this.mailService.sendInvitationEmail(event);
         } catch (Exception e) {

@@ -11,7 +11,6 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -24,10 +23,10 @@ public interface FileRepository extends JpaRepository<File, UUID> {
 
     @Query("""
         SELECT f FROM File f
-        WHERE f.status = 'FAILED'
+        WHERE f.status = :status 
         AND f.createdAt < :cutoff
     """)
-    List<File> findFailed(@Param("cutoff") Instant cutoff);
+    List<File> findFailed(@Param("cutoff") Instant cutoff, @Param("status") FileStatus status);
 
     @Lock(LockModeType.OPTIMISTIC)
     @Query("""
@@ -35,15 +34,16 @@ public interface FileRepository extends JpaRepository<File, UUID> {
         JOIN FETCH f.workspace w
         WHERE f.id = :fileId
             AND f.deletedAt IS NULL
+            AND f.status = :status
     """)
-    Optional<File> findActiveTargetForUpdate(@Param("fileId") UUID fileId);
+    Optional<File> findActiveTargetForUpdate(@Param("fileId") UUID fileId, @Param("status") FileStatus status);
 
     @Query("""
         SELECT f FROM File f
-        WHERE f.status = 'PENDING'
+        WHERE f.status = :status 
         AND f.createdAt < :cutoff
     """)
-    List<File> findStaleUploads(@Param("cutoff") Instant cutoff, Limit limit);
+    List<File> findStaleUploads(@Param("cutoff") Instant cutoff, @Param("status") FileStatus status, Limit limit);
 
     @Query("""
         SELECT f FROM File f
@@ -82,7 +82,13 @@ public interface FileRepository extends JpaRepository<File, UUID> {
             UUID folderId
     );
 
-    Page<File> findByFolderIdAndDeletedAtIsNull(UUID folderId, Pageable pageable);
+    @Query("""
+        SELECT f FROM File f
+        WHERE f.folder.id = :folderId
+        AND f.status = :status
+        AND f.deletedAt IS NULL
+    """)
+    Page<File> findActiveFilesInFolder(@Param("folderId") UUID folderId, @Param("status") FileStatus status, Pageable pageable);
 
     @Modifying(clearAutomatically = true)
     @Query(value = """
@@ -104,16 +110,18 @@ public interface FileRepository extends JpaRepository<File, UUID> {
         JOIN FETCH f.workspace w
         WHERE f.id = :fileId
             AND f.deletedAt IS NULL
+            AND f.status = :status
     """)
-    Optional<File> findActiveByIdWithWorkspace(@Param("fileId") UUID fileId);
+    Optional<File> findActiveByIdWithWorkspace(@Param("fileId") UUID fileId, @Param("status") FileStatus status);
 
     @Query("""
         SELECT f FROM File f
         WHERE f.workspace.id = :workspaceId
         AND f.folder.id IS NULL
         AND f.deletedAt IS NULL
+        AND f.status = :status
     """)
-    Page<File> findRootFiles(@Param("workspaceId") UUID workspaceId, Pageable pageable);
+    Page<File> findRootFiles(@Param("workspaceId") UUID workspaceId, @Param("status") FileStatus status, Pageable pageable);
 
     @Query("""
         SELECT fi FROM File fi

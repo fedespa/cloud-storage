@@ -11,15 +11,14 @@ import com.fededev.cloudstorage.file.repository.FileRepository;
 import com.fededev.cloudstorage.file.request.UploadFileRequest;
 import com.fededev.cloudstorage.folder.model.Folder;
 import com.fededev.cloudstorage.folder.repository.FolderRepository;
+import com.fededev.cloudstorage.folder.service.FolderService;
 import com.fededev.cloudstorage.infraestructure.security.CustomUserDetails;
 import com.fededev.cloudstorage.infraestructure.validator.FileTypeValidator;
 import com.fededev.cloudstorage.storage.StorageService;
-import com.fededev.cloudstorage.user.model.AppUser;
-import com.fededev.cloudstorage.user.repository.UserRepository;
 import com.fededev.cloudstorage.workspace.member.model.WorkspaceMember;
 import com.fededev.cloudstorage.workspace.member.service.WorkspaceMemberService;
 import com.fededev.cloudstorage.workspace.model.Workspace;
-import com.fededev.cloudstorage.workspace.repository.WorkspaceRepository;
+import com.fededev.cloudstorage.workspace.service.WorkspaceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,25 +37,23 @@ public class UploadFileService {
 
     private final WorkspaceMemberService memberService;
     private final StorageService storageService;
-    private final UserRepository userRepository;
     private final FileRepository fileRepository;
-    private final FolderRepository folderRepository;
-    private final WorkspaceRepository workspaceRepository;
     private final FileTypeValidator validator;
     private final TransactionTemplate transactionTemplate;
+    private final DatabaseUploadService databaseUploadService;
+    private final WorkspaceService workspaceService;
+    private final FolderService folderService;
 
     @Value("${app.storage.max-file-size}")
     private long maxSizeBytes;
 
     @PreAuthorize("isAuthenticated()")
-    @Transactional
     public InitUploadResponseDto initiateUpload(
             UUID workspaceId,
             UUID folderId,
             UploadFileRequest request,
             CustomUserDetails user
     ){
-
         validateUploadRequest(workspaceId, folderId, request);
 
         String ext = extractExtension(request.filename());
@@ -74,14 +71,17 @@ public class UploadFileService {
 
         validateDuplicateFile(sanitizedName, ext, workspace.getId(), folder);
 
-        reserveWorkspaceQuota(workspace.getId(), request.sizeBytes());
+        String s3key = generateS3Key(context.workspace().getId(), sanitizedName, ext);
 
-        File file = createPendingFile(
+        File file = this.databaseUploadService.reserveQuotaAndCreatePendingFile(
                 sanitizedName,
                 ext,
                 request,
                 context,
-                user
+                user,
+                s3key,
+                workspace.getId(),
+                request.sizeBytes()
         );
 
         Map<String, String> fields = this.storageService.generatePresignedPost(
@@ -143,7 +143,7 @@ public class UploadFileService {
 
             this.transactionTemplate.executeWithoutResult(status -> {
                 file.markAsFailed();
-                this.workspaceRepository.decreaseUsedStorage(
+                this.workspaceService.decreaseUsedStorage(
                         file.getWorkspace().getId(),
                         declaredSize
                 );
@@ -175,45 +175,9 @@ public class UploadFileService {
                 FileStatus.PENDING
         ).ifPresent(file -> {
             file.setStatus(FileStatus.FAILED);
-            this.workspaceRepository.decreaseUsedStorage(
-                    file.getWorkspace().getId(), file.getSize()
-            );
+            this.workspaceService.decreaseUsedStorage(file.getWorkspace().getId(), file.getSize());
             this.fileRepository.save(file);
         });
-    }
-
-    private File createPendingFile(
-            String sanitizedName,
-            String ext,
-            UploadFileRequest request,
-            UploadContext context,
-            CustomUserDetails user
-    ){
-        AppUser owner = this.userRepository.getReferenceById(user.getId());
-
-        String s3Key = generateS3Key(context.workspace().getId(), sanitizedName, ext);
-
-        File newFile = File.builder()
-                .name(sanitizedName)
-                .extension(ext)
-                .folder(context.folder())
-                .owner(owner)
-                .workspace(context.workspace())
-                .size(request.sizeBytes())
-                .s3Key(s3Key)
-                .mimeType(request.contentType())
-                .status(FileStatus.PENDING)
-                .build();
-
-        return this.fileRepository.save(newFile);
-    }
-
-    private void reserveWorkspaceQuota(UUID workspaceId, Long sizeBytes) {
-        int updated = this.workspaceRepository.increaseUsedStorageIfPossible(workspaceId, sizeBytes);
-
-        if (updated == 0) {
-            throw new AppException(ErrorCode.WORKSPACE_QUOTA_EXCEEDED);
-        }
     }
 
     private void validateDuplicateFile(String sanitizedName, String ext, UUID workspaceId, Folder folder){
@@ -253,8 +217,7 @@ public class UploadFileService {
         UUID finalWorkspaceId;
 
         if (folderId != null) {
-            folder = this.folderRepository.findActiveById(folderId)
-                    .orElseThrow(() -> new AppException(ErrorCode.FOLDER_NOT_FOUND));
+            folder = this.folderService.getActiveById(folderId);
 
             finalWorkspaceId = folder.getWorkspace().getId();
         } else {
@@ -264,8 +227,7 @@ public class UploadFileService {
             finalWorkspaceId = workspaceId;
         }
 
-        Workspace workspace = this.workspaceRepository.findById(finalWorkspaceId)
-                .orElseThrow(() -> new AppException(ErrorCode.WORKSPACE_NOT_FOUND));
+        Workspace workspace = this.workspaceService.getById(finalWorkspaceId);
 
         return new UploadContext(workspace, folder);
     }

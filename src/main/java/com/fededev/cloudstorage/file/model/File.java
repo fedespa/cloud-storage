@@ -52,8 +52,7 @@ public class File extends AuditableEntity {
     @NotNull
     private Long size;
 
-    @Column(name = "s3_key", nullable = false, unique = true)
-    @NotBlank
+    @Column(name = "s3_key", unique = true)
     private String s3Key;
 
     @NotBlank

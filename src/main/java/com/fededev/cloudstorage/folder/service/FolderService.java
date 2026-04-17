@@ -3,7 +3,7 @@ package com.fededev.cloudstorage.folder.service;
 import com.fededev.cloudstorage.common.exception.AppException;
 import com.fededev.cloudstorage.common.exception.ErrorCode;
 import com.fededev.cloudstorage.file.model.File;
-import com.fededev.cloudstorage.file.repository.FileRepository;
+import com.fededev.cloudstorage.file.service.FileService;
 import com.fededev.cloudstorage.folder.model.Folder;
 import com.fededev.cloudstorage.folder.model.response.FolderDto;
 import com.fededev.cloudstorage.folder.model.response.FullFolderResponse;
@@ -34,7 +34,7 @@ public class FolderService {
     private final UserRepository userRepository;
     private final WorkspaceRepository workspaceRepository;
     private final FolderRepository folderRepository;
-    private final FileRepository fileRepository;
+    private final FileService fileService;
 
     @PreAuthorize("isAuthenticated()")
     @Transactional
@@ -70,7 +70,7 @@ public class FolderService {
                 .orElseThrow(() -> new AppException(ErrorCode.FOLDER_NOT_FOUND));
 
         Page<Folder> children = this.folderRepository.findByParentIdAndDeletedAtIsNull(folderId, childrenPageable);
-        Page<File> files = this.fileRepository.findByFolderIdAndDeletedAtIsNull(folderId, filesPageable);
+        Page<File> files = this.fileService.findActiveFilesInFolder(folderId, filesPageable);
 
         return FullFolderResponse.fromEntity(folder, children, files);
     }
@@ -111,8 +111,14 @@ public class FolderService {
 
         validateDeletePermission(folder, user.getId());
 
-        this.fileRepository.softDeleteFilesInFolders(folder.getId());
+
+        this.fileService.softDeleteAllUnderFolder(folder.getId());
         this.folderRepository.softDeleteFolderAndSubfolders(folder.getId());
+    }
+
+    public Folder getActiveById(UUID folderId) {
+        return this.folderRepository.findActiveById(folderId)
+                .orElseThrow(() -> new AppException(ErrorCode.FOLDER_NOT_FOUND));
     }
 
     private void validateDeletePermission(Folder folder, UUID userId) {

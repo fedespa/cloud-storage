@@ -23,10 +23,7 @@ public class TrashJobService {
 
     public TrashJob create(UUID workspaceId, UUID requestBy){
 
-        boolean exists = this.trashJobRepository.existsByWorkspaceIdAndStatusIn(
-                workspaceId,
-                List.of(TrashJobStatus.PENDING, TrashJobStatus.IN_PROGRESS)
-        );
+        boolean exists = existsPendingOrInProgressJob(workspaceId);
 
         if (exists){
             throw new AppException(ErrorCode.TRASH_JOB_ALREADY_EXISTS);
@@ -39,6 +36,13 @@ public class TrashJobService {
                 .build();
 
         return this.trashJobRepository.save(trashJob);
+    }
+
+    public boolean existsPendingOrInProgressJob(UUID workspaceId){
+        return this.trashJobRepository.existsByWorkspaceIdAndStatusIn(
+                workspaceId,
+                List.of(TrashJobStatus.PENDING, TrashJobStatus.IN_PROGRESS)
+        );
     }
 
     @Scheduled(fixedDelay = 15000)

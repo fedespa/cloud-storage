@@ -19,8 +19,13 @@ public interface FolderRepository extends JpaRepository<Folder, UUID> {
     @Query("SELECT f FROM Folder f WHERE f.id = :id AND f.deletedAt IS NULL")
     Optional<Folder> findActiveById(UUID id);
 
-    @Query("SELECT f FROM Folder f WHERE f.id = :id AND f.deletedAt IS NOT NULL")
-    Optional<Folder> findDeletedById(UUID id);
+    @Query("""
+        SELECT f From Folder f
+        WHERE f.id = :id AND f.workspace.id = :workspaceId
+        AND f.deletedAt IS NOT NULL
+    """)
+    Optional<Folder> findDeletedByIdAndWorkspaceId(UUID id, UUID workspaceId);
+
 
     @Query("""
         SELECT COUNT(*) > 0 

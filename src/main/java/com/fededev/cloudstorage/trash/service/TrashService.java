@@ -42,20 +42,28 @@ public class TrashService {
     ){
         validateListContentPermission(workspaceId, user.getId());
 
-        if (folderId == null) {
-            Page<Folder> rootFolders = this.folderRepository.findTrashRootFolders(workspaceId, pageable);
-            Page<File> rootFiles = this.fileRepository.findTrashRootFiles(workspaceId, pageable);
-
-            return new TrashFolderResponse(workspaceId, "Trash Bin", null,
-                    rootFolders.map(FolderDto::fromEntity),
-                    rootFiles.map(FileDto::fromEntity), true);
+        if (this.trashJobService.existsPendingOrInProgressJob(workspaceId)) {
+            throw new AppException(ErrorCode.TRASH_JOB_ALREADY_EXISTS);
         }
 
-        return listTrashFolder(folderId, pageable);
+        if (folderId == null) {
+            return listRootContent(workspaceId, pageable);
+        }
+
+        return listTrashFolder(workspaceId, folderId, pageable);
     }
 
-    private TrashFolderResponse listTrashFolder(UUID folderId, Pageable pageable) {
-        Folder folder = this.folderRepository.findDeletedById(folderId)
+    private TrashFolderResponse listRootContent(UUID workspaceId, Pageable pageable) {
+        Page<Folder> rootFolders = this.folderRepository.findTrashRootFolders(workspaceId, pageable);
+        Page<File> rootFiles = this.fileRepository.findTrashRootFiles(workspaceId, pageable);
+
+        return new TrashFolderResponse(workspaceId, "Trash Bin", null,
+                rootFolders.map(FolderDto::fromEntity),
+                rootFiles.map(FileDto::fromEntity), true);
+    }
+
+    private TrashFolderResponse listTrashFolder(UUID workspaceId, UUID folderId, Pageable pageable) {
+        Folder folder = this.folderRepository.findDeletedByIdAndWorkspaceId(folderId, workspaceId)
                 .orElseThrow(() -> new AppException(ErrorCode.FOLDER_NOT_FOUND));
 
         Page<File> files = this.fileRepository.findTrashedFilesInFolder(folderId, pageable);

@@ -114,26 +114,24 @@ public interface FolderRepository extends JpaRepository<Folder, UUID> {
             @Param("folderToMoveId") UUID folderToMoveId
     );
 
-    @Modifying(clearAutomatically = true)
     @Query(value = """
         WITH RECURSIVE target_folders AS (
-            SELECT id
-            FROM folders
-            WHERE id = :folderId
-              AND deleted_at IS NULL
-            
+            SELECT id, deleted_at FROM folders WHERE id = :folderId
             UNION ALL
-            
-            SELECT f.id
-            FROM folders f
-            INNER JOIN target_folders tf ON f.parent_id = tf.id
-            WHERE f.deleted_at IS NULL
+            SELECT f.id, f.deleted_at FROM folders f INNER JOIN target_folders tf
+                ON f.parent_id = tf.id
         )
-        UPDATE folders
-        SET deleted_at = NOW()
-        WHERE id IN (SELECT id FROM target_folders)
-        """, nativeQuery = true)
-    void softDeleteFolderAndSubfolders(@Param("folderId") UUID folderId);
+        SELECT id FROM target_folders
+        WHERE deleted_at IS NULL
+        LIMIT :batchSize
+    """, nativeQuery = true)
+    List<UUID> findFolderIdsToDeleteInBatch(@Param("folderId") UUID folderId, @Param("batchSize") int batchSize);
+
+    @Modifying(clearAutomatically = true)
+    @Query(value = """
+        UPDATE folders SET deleted_at = NOW() WHERE id IN :ids
+    """, nativeQuery = true)
+    void softDeleteFoldersByIds(@Param("folderIds") List<UUID> ids);
 
     @Query("""
         SELECT f FROM Folder f 

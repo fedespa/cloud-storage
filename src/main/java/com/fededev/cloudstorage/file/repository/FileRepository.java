@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -90,20 +91,22 @@ public interface FileRepository extends JpaRepository<File, UUID> {
     """)
     Page<File> findActiveFilesInFolder(@Param("folderId") UUID folderId, @Param("status") FileStatus status, Pageable pageable);
 
-    @Modifying(clearAutomatically = true)
     @Query(value = """
         WITH RECURSIVE target_folders AS (
-            SELECT id FROM folders WHERE id = :folderId AND deleted_at IS NULL
+            SELECT id FROM folders WHERE id = :folderId
             UNION ALL
             SELECT f.id FROM folders f INNER JOIN target_folders tf ON f.parent_id = tf.id
-            WHERE f.deleted_at IS NULL
         )
-        UPDATE files
-        SET deleted_at = NOW()
+        SELECT id FROM files
         WHERE folder_id IN (SELECT id FROM target_folders)
-          AND deleted_at IS NULL
-        """, nativeQuery = true)
-    void softDeleteFilesInFolders(@Param("folderId") UUID folderId);
+            AND deleted_at IS NULL
+        LIMIT :batchSize
+    """, nativeQuery = true)
+    List<UUID> findFileIdsToDeleteInBatch(@Param("folderId") UUID folderId, @Param("batchSize") int batchSize);
+
+    @Modifying(clearAutomatically = true)
+    @Query(value = "UPDATE files SET deleted_at = NOW() WHERE id IN :ids", nativeQuery = true)
+    void softDeleteFilesByIds(@Param("ids") List<UUID> ids);
 
     @Query("""
         SELECT f FROM File f

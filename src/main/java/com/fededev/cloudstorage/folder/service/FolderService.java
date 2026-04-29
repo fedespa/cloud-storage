@@ -4,6 +4,7 @@ import com.fededev.cloudstorage.common.exception.AppException;
 import com.fededev.cloudstorage.common.exception.ErrorCode;
 import com.fededev.cloudstorage.file.model.File;
 import com.fededev.cloudstorage.file.service.FileService;
+import com.fededev.cloudstorage.folder.deletionJob.service.DeletionFolderJobService;
 import com.fededev.cloudstorage.folder.model.Folder;
 import com.fededev.cloudstorage.folder.model.response.FolderDto;
 import com.fededev.cloudstorage.folder.model.response.FullFolderResponse;
@@ -35,6 +36,7 @@ public class FolderService {
     private final WorkspaceRepository workspaceRepository;
     private final FolderRepository folderRepository;
     private final FileService fileService;
+    private final DeletionFolderJobService deletionFolderJobService;
 
     @PreAuthorize("isAuthenticated()")
     @Transactional
@@ -111,9 +113,11 @@ public class FolderService {
 
         validateDeletePermission(folder, user.getId());
 
+        this.deletionFolderJobService.create(folderId, user.getId());
+        folder.markAsDeleted();
 
-        this.fileService.softDeleteAllUnderFolder(folder.getId());
-        this.folderRepository.softDeleteFolderAndSubfolders(folder.getId());
+        //this.fileService.softDeleteAllUnderFolder(folder.getId());
+        //this.folderRepository.softDeleteFolderAndSubfolders(folder.getId());
     }
 
     public Folder getActiveById(UUID folderId) {

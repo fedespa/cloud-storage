@@ -74,10 +74,6 @@ public class FileService {
         file.markAsDeleted();
     }
 
-    public void softDeleteAllUnderFolder(UUID folderId){
-        this.fileRepository.softDeleteFilesInFolders(folderId);
-    }
-
     public Page<File> findActiveFilesInFolder(UUID folderId, Pageable pageable){
         return this.fileRepository.findActiveFilesInFolder(folderId, FileStatus.UPLOADED, pageable);
     }

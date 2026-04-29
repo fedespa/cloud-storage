@@ -63,6 +63,9 @@ public enum ErrorCode {
     LINK_REVOKED("S_003", "El link fue revocado", HttpStatus.BAD_REQUEST),
     LINK_EXPIRED("S_004", "El link ya expiró", HttpStatus.BAD_REQUEST),
 
+    // DELETION FOLDER JOB
+    DELETION_FOLDER_JOB_ALREADY_EXISTS("D_001", "La carpeta se esta borrando en segundo plano", HttpStatus.CONFLICT),
+
     INTERNAL_SERVER_ERROR("G_001", "Ha ocurrido un error interno", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final String code;
